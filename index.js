@@ -106,7 +106,8 @@ app.get("/:cfg/stream/:type/:id.json", async (req, res) => {
         title : s.qualityTitle || "Direct Play",
         name  : "Emby",
         url   : s.directPlayUrl,
-        behaviorHints: { notWebReady: true, bingGroup: "Emby-" + s.qualityTitle }
+        behaviorHints: { notWebReady: true, bingGroup: "Emby-" + s.qualityTitle },
+        subtitles: s.subtitles || [] // Include subtitles if available
       }));
     res.json({ streams });
   } catch (e) {

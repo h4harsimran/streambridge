@@ -7,6 +7,14 @@ const ITEM_TYPE_SERIES = 'Series';
 const HEADER_EMBY_TOKEN = 'X-Emby-Token';
 const DEFAULT_FIELDS = "ProviderIds,Name,MediaSources,Path,Id,IndexNumber,ParentIndexNumber"; // Consolidated fields
 
+// Codec to file format mapping for subtitles
+const CODEC_FORMAT_MAP = {
+  'subrip': 'srt',
+  'webvtt': 'vtt',
+  'ass': 'ass',
+  'ssa': 'ssa'
+};
+
 // --- Helper Functions ---
 
 
@@ -407,6 +415,21 @@ async function getPlaybackStreams(embyItem, seriesName = null, config) {
       }
       qualityTitle = qualityTitle || 'Direct Play'; // Fallback title
 
+      // Extract subtitle streams from MediaStreams
+      const subtitleStreams = source.MediaStreams?.filter(ms => ms.Type === 'Subtitle') || [];
+      
+      // Build subtitle objects
+      const subtitles = subtitleStreams.map(sub => {
+        const codec = sub.Codec?.toLowerCase();
+        const format = CODEC_FORMAT_MAP[codec] || 'srt';
+        
+        return {
+          id: `sub-${embyItem.Id}-${source.Id}-${sub.Index}`,
+          lang: sub.Language || 'und',  // Keep 3-letter ISO 639-2 code, fallback to 'und'
+          url: `${config.serverUrl}/Videos/${embyItem.Id}/${source.Id}/Subtitles/${sub.Index}/Stream.${format}?api_key=${config.accessToken}`
+        };
+      });
+
       streamDetailsArray.push({
           directPlayUrl: directPlayUrl,
           itemName: embyItem.Name,
@@ -421,7 +444,8 @@ async function getPlaybackStreams(embyItem, seriesName = null, config) {
           audioCodec: audioStream?.Codec || null, // Prefer stream info
           qualityTitle: qualityTitle,
           embyUrlBase: config.serverUrl,
-          apiKey: config.accessToken // Exposing API key here
+          apiKey: config.accessToken, // Exposing API key here
+          subtitles: subtitles // Embedded subtitles array
       });
       
     }
