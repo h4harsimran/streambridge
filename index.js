@@ -87,6 +87,8 @@ app.get("/:cfg/manifest.json", (req, res) => {
 // STREAM route  →  /<cfg>/stream/<type>/<id>.json
 // ──────────────────────────────────────────────────────────────────────────
 app.get("/:cfg/stream/:type/:id.json", async (req, res) => {
+  // Set cache header before res.json()
+  res.set('Cache-Control', 'public, max-age=120');  // 2 minutes
   let cfg;
   try {
     cfg = decodeCfg(req.params.cfg);
