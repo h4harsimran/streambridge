@@ -87,8 +87,6 @@ app.get("/:cfg/manifest.json", (req, res) => {
 // STREAM route  →  /<cfg>/stream/<type>/<id>.json
 // ──────────────────────────────────────────────────────────────────────────
 app.get("/:cfg/stream/:type/:id.json", async (req, res) => {
-  // Set cache header before res.json()
-  res.set('Cache-Control', 'public, max-age=120');  // 2 minutes
   let cfg;
   try {
     cfg = decodeCfg(req.params.cfg);
@@ -121,6 +119,13 @@ app.get("/:cfg/stream/:type/:id.json", async (req, res) => {
           subtitles: s.subtitles || [] // Include subtitles if available
         };
       });
+    // Set cache based on whether streams were found
+    if (streams.length > 0) {
+      res.set('Cache-Control', 'public, max-age=120');  // Cache for 2 minutes when streams exist
+    } else {
+      res.set('Cache-Control', 'no-cache');  // Don't cache empty results
+    }
+
     res.json({ streams });
   } catch (e) {
     console.error("Stream handler error:", e);
