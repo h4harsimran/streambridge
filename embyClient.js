@@ -601,39 +601,41 @@ function formatFileSize(bytes) {
 function buildStreamDescription(mediaInfo) {
   const lines = [];
   
-  // Line 1: Quality + Resolution Dimensions + Video Codec
-  const videoLine = [];
+  // Line 1: Resolution (Quality tag + Dimensions)
+  const resolutionLine = [];
   if (mediaInfo.qualityTag && mediaInfo.qualityTag !== 'Unknown') {
-    videoLine.push(mediaInfo.qualityTag);
+    resolutionLine.push(mediaInfo.qualityTag);
   }
   if (mediaInfo.resolutionDimensions) {
-    videoLine.push(mediaInfo.resolutionDimensions);
+    resolutionLine.push(mediaInfo.resolutionDimensions);
+  }
+  if (resolutionLine.length > 0) {
+    lines.push(resolutionLine.join(' • '));
+  }
+  
+  // Line 2: Type (HDR + Video Codec)
+  const typeLine = [];
+  if (mediaInfo.hdrTag) {
+    typeLine.push(mediaInfo.hdrTag);
   }
   if (mediaInfo.videoTag) {
-    videoLine.push(mediaInfo.videoTag);
+    typeLine.push(mediaInfo.videoTag);
   }
-  if (videoLine.length > 0) {
-    lines.push(videoLine.join(' • '));
+  if (typeLine.length > 0) {
+    lines.push(typeLine.join(' • '));
   }
   
-  // Line 2: HDR + REMUX tags (special indicators)
-  const specialLine = [];
-  if (mediaInfo.hdrTag) {
-    specialLine.push(mediaInfo.hdrTag);
-  }
+  // Line 3: REMUX (when available)
   if (mediaInfo.isRemux) {
-    specialLine.push('REMUX');
-  }
-  if (specialLine.length > 0) {
-    lines.push(specialLine.join(' • '));
+    lines.push('REMUX');
   }
   
-  // Line 3: Audio information
+  // Line 4: Audio information
   if (mediaInfo.audioTag) {
     lines.push(mediaInfo.audioTag);
   }
   
-  // Line 4: Container, Bitrate, Size
+  // Line 5: Container, Bitrate, Size
   const fileLine = [];
   if (mediaInfo.container) {
     fileLine.push(mediaInfo.container);
