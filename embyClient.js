@@ -363,6 +363,310 @@ async function findEpisodeItem(parentSeriesItem, seasonNumber, episodeNumber, co
 
 // --- Stream Generation ---
 
+// --- Helper Functions for Stream Enrichment ---
+
+/**
+ * Returns resolution label based on video stream height, accounting for anamorphic content.
+ * @param {object} videoStream - The video MediaStream object.
+ * @returns {string} Quality tag like "4K", "1080p", "720p", etc.
+ */
+function getQualityTag(videoStream) {
+  if (!videoStream) return 'Unknown';
+  
+  const height = videoStream.Height;
+  const width = videoStream.Width;
+  
+  if (!height && !width) return 'Unknown';
+  
+  // Calculate effective height for anamorphic content (assume 16:9 if only width available)
+  const effectiveHeight = height || Math.round(width / 1.78);
+  
+  if (effectiveHeight >= 2160) return '4K';
+  if (effectiveHeight >= 1440) return '1440p';
+  if (effectiveHeight >= 1080) return '1080p';
+  if (effectiveHeight >= 720) return '720p';
+  if (effectiveHeight >= 576) return '576p';
+  if (effectiveHeight >= 480) return '480p';
+  return 'SD';
+}
+
+/**
+ * Returns formatted video codec with profile information.
+ * @param {object} videoStream - The video MediaStream object.
+ * @returns {string} Formatted codec tag like "H.264", "HEVC 10bit", etc.
+ */
+function getVideoTag(videoStream) {
+  if (!videoStream) return '';
+  
+  const codec = videoStream.Codec?.toUpperCase();
+  const profile = videoStream.Profile;
+  
+  // Map codec names to common abbreviations
+  const codecMap = {
+    'H264': 'H.264',
+    'H265': 'HEVC',
+    'HEVC': 'HEVC',
+    'VP8': 'VP8',
+    'VP9': 'VP9',
+    'AV1': 'AV1',
+    'MPEG2VIDEO': 'MPEG-2',
+    'VC1': 'VC-1'
+  };
+  
+  const displayCodec = codecMap[codec] || codec || '';
+  
+  // Add profile if meaningful (Main10 for 10-bit, etc.)
+  if (profile && ['Main10', 'High10', 'Main 10'].some(p => profile.includes(p))) {
+    return `${displayCodec} 10bit`;
+  }
+  
+  return displayCodec;
+}
+
+/**
+ * Returns HDR format using Emby's ExtendedVideoType enum with fallback to ColorTransfer detection.
+ * @param {object} videoStream - The video MediaStream object.
+ * @returns {string|null} HDR tag like "HDR10", "HDR10+", "HLG", "DV", or null.
+ */
+function getHdrTag(videoStream) {
+  if (!videoStream) return null;
+  
+  // Primary detection via ExtendedVideoType enum (most accurate)
+  switch(videoStream.ExtendedVideoType) {
+    case 'Hdr10': return 'HDR10';
+    case 'Hdr10Plus': return 'HDR10+';
+    case 'HyperLogGamma': return 'HLG';
+    case 'DolbyVision': return 'DV';
+    default: break;
+  }
+  
+  // Fallback to ColorTransfer property
+  if (videoStream.ColorTransfer === 'smpte2084') return 'HDR10';
+  if (videoStream.ColorTransfer === 'arib-std-b67') return 'HLG';
+  
+  // Legacy IsHDR flag as last resort
+  if (videoStream.IsHDR === true) return 'HDR';
+  
+  return null;
+}
+
+/**
+ * Returns formatted audio codec with channel layout, preferring default audio stream.
+ * @param {object} audioStream - The audio MediaStream object.
+ * @returns {string} Formatted audio tag like "AAC 2.0", "TrueHD 7.1", etc.
+ */
+function getAudioTag(audioStream) {
+  if (!audioStream) return '';
+  
+  const codec = audioStream.Codec?.toUpperCase();
+  const channels = audioStream.Channels;
+  
+  // Map codec names to industry-standard abbreviations
+  const codecMap = {
+    'AAC': 'AAC',
+    'AC3': 'DD',      // Dolby Digital
+    'EAC3': 'DD+',    // Dolby Digital Plus
+    'DTS': 'DTS',
+    'DTSHD': 'DTS-HD',
+    'TRUEHD': 'TrueHD',
+    'FLAC': 'FLAC',
+    'OPUS': 'Opus',
+    'MP3': 'MP3',
+    'VORBIS': 'Vorbis',
+    'PCM': 'PCM'
+  };
+  
+  const displayCodec = codecMap[codec] || codec || 'Unknown';
+  
+  // Format channel count to standard notation
+  let channelStr = '';
+  if (channels === 1) channelStr = 'Mono';
+  else if (channels === 2) channelStr = '2.0';
+  else if (channels === 6) channelStr = '5.1';
+  else if (channels === 8) channelStr = '7.1';
+  else if (channels) channelStr = `${channels}ch`;
+  
+  return channelStr ? `${displayCodec} ${channelStr}` : displayCodec;
+}
+
+/**
+ * Returns uppercase container format.
+ * @param {string} container - The container string (e.g., "mkv", "mp4").
+ * @returns {string} Uppercase container tag or empty string.
+ */
+function getContainerTag(container) {
+  if (!container) return '';
+  return container.toUpperCase();
+}
+
+/**
+ * Detects if the source is a Blu-ray or UHD remux based on container, bitrate, and codec.
+ * @param {object} source - The MediaSource object.
+ * @param {object} videoStream - The video MediaStream object.
+ * @returns {boolean} True if detected as remux, false otherwise.
+ */
+function isRemux(source, videoStream) {
+  if (!source) return false;
+  
+  const container = source.Container?.toUpperCase();
+  const bitrate = source.Bitrate;
+  const height = videoStream?.Height;
+  
+  // MKV is typical remux container
+  if (container !== 'MKV') return false;
+  
+  // High bitrate threshold indicators
+  // 4K remux typically > 40 Mbps
+  // 1080p remux typically > 20 Mbps
+  if (height >= 2160 && bitrate > 40000000) return true;
+  if (height >= 1080 && bitrate > 20000000) return true;
+  
+  // Check filename/path for remux indicator
+  const path = source.Path?.toLowerCase() || '';
+  const name = source.Name?.toLowerCase() || '';
+  
+  if (path.includes('remux') || name.includes('remux')) return true;
+  if (path.includes('bluray') || name.includes('bluray')) return true;
+  
+  return false;
+}
+
+/**
+ * Converts bits per second to human-readable Mbps format.
+ * @param {number} bps - Bitrate in bits per second.
+ * @returns {string|null} Formatted bitrate like "8.2Mbps" or null if invalid.
+ */
+function formatBitrate(bps) {
+  if (!bps || bps === 0) return null;
+  const mbps = (bps / 1000000).toFixed(1);
+  return `${mbps}Mbps`;
+}
+
+/**
+ * Converts bytes to human-readable format with appropriate unit.
+ * @param {number} bytes - File size in bytes.
+ * @returns {string|null} Formatted size like "6.9GB" or "1.2MB" or null if invalid.
+ */
+function formatFileSize(bytes) {
+  if (!bytes || bytes === 0) return null;
+  
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let size = bytes;
+  let unitIndex = 0;
+  
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex++;
+  }
+  
+  // Use 1 decimal place for GB/TB, 0 for smaller units
+  const decimals = unitIndex >= 3 ? 1 : 0;
+  return `${size.toFixed(decimals)}${units[unitIndex]}`;
+}
+
+/**
+ * Creates comprehensive description string with all technical details.
+ * @param {object} mediaInfo - Enriched media information object.
+ * @returns {string} Description string with all available metadata.
+ */
+function buildStreamDescription(mediaInfo) {
+  const parts = [];
+  
+  // Quality/Resolution
+  if (mediaInfo.qualityTag && mediaInfo.qualityTag !== 'Unknown') {
+    parts.push(mediaInfo.qualityTag);
+  }
+  
+  // Video codec
+  if (mediaInfo.videoTag) {
+    parts.push(mediaInfo.videoTag);
+  }
+  
+  // HDR indicator
+  if (mediaInfo.hdrTag) {
+    parts.push(mediaInfo.hdrTag);
+  }
+  
+  // Remux indicator
+  if (mediaInfo.isRemux) {
+    parts.push('REMUX');
+  }
+  
+  // Audio codec and channels
+  if (mediaInfo.audioTag) {
+    parts.push(mediaInfo.audioTag);
+  }
+  
+  // Container format
+  if (mediaInfo.container) {
+    parts.push(mediaInfo.container);
+  }
+  
+  // Bitrate
+  if (mediaInfo.bitrateFormatted) {
+    parts.push(mediaInfo.bitrateFormatted);
+  }
+  
+  // File size
+  if (mediaInfo.sizeFormatted) {
+    parts.push(mediaInfo.sizeFormatted);
+  }
+  
+  const description = parts.join(' • ');
+  
+  // Truncate if exceeds recommended length (keep readable on all devices)
+  if (description.length > 100) {
+    return description.substring(0, 97) + '...';
+  }
+  
+  return description || 'Stream Available';
+}
+
+/**
+ * Safely extracts media information with error handling and fallbacks.
+ * @param {object} source - The MediaSource object.
+ * @param {object} videoStream - The video MediaStream object.
+ * @param {object} audioStream - The audio MediaStream object.
+ * @returns {object} Enriched media information object.
+ */
+function safeExtractMediaInfo(source, videoStream, audioStream) {
+  try {
+    return {
+      qualityTag: getQualityTag(videoStream),
+      videoTag: getVideoTag(videoStream),
+      videoCodec: videoStream?.Codec,
+      hdrTag: getHdrTag(videoStream),
+      audioTag: getAudioTag(audioStream),
+      audioCodec: audioStream?.Codec,
+      container: getContainerTag(source.Container),
+      isRemux: isRemux(source, videoStream),
+      bitrate: source.Bitrate,
+      bitrateFormatted: formatBitrate(source.Bitrate),
+      size: source.Size,
+      sizeFormatted: formatFileSize(source.Size),
+      filename: source.Path?.split(/[\\/]/).pop() || source.Name,
+      supportsDirectPlay: source.SupportsDirectPlay === true,
+      supportsDirectStream: source.SupportsDirectStream === true
+    };
+  } catch (error) {
+    console.error('Media info extraction failed:', error);
+    
+    // Return minimal fallback info
+    return {
+      qualityTag: 'Unknown',
+      videoTag: '',
+      hdrTag: null,
+      audioTag: '',
+      container: source?.Container?.toUpperCase() || 'Unknown',
+      isRemux: false,
+      bitrateFormatted: null,
+      sizeFormatted: null,
+      filename: source?.Path?.split(/[\\/]/).pop() || source?.Name || 'stream',
+      supportsDirectPlay: source?.SupportsDirectPlay || false
+    };
+  }
+}
+
 /**
  * Gets playback information for an Emby item and generates direct play stream URLs.
  * @param {object} embyItem - The Emby movie or episode item (must have Id, Name, Type).
@@ -386,74 +690,114 @@ async function getPlaybackStreams(embyItem, seriesName = null, config) {
 
     const streamDetailsArray = [];
 
+    // Process ALL available MediaSources (multiple quality options)
     for (const source of playbackInfoData.MediaSources) {
-        
-      const videoStream = source.MediaStreams?.find(ms => ms.Type === 'Video');
-      const audioStream = source.MediaStreams?.find(ms => ms.Type === 'Audio');
-
-      const directPlayUrl = `${config.serverUrl}/Videos/${embyItem.Id}/stream.${source.Container}?MediaSourceId=${source.Id}&Static=true&api_key=${config.accessToken}&DeviceId=stremio-addon-device-id`; // Ensure DeviceId is appropriate
-
-      // Build Quality Title (same logic as original)
-      let qualityTitle = "";
-        if (videoStream) {
-          qualityTitle += videoStream.DisplayTitle || "";
-          if (videoStream.Width && videoStream.Height) {
-              if (!qualityTitle.toLowerCase().includes(videoStream.Height + "p") && !qualityTitle.toLowerCase().includes(videoStream.Width + "x" + videoStream.Height)) {
-                  qualityTitle = (qualityTitle ? qualityTitle + " " : "") + `${videoStream.Height}p`;
+        try {
+            // Extract video stream (primary video track)
+            const videoStream = source.MediaStreams?.find(ms => ms.Type === 'Video');
+            
+            // Extract audio stream (prefer default, fallback to first)
+            const audioStream = source.MediaStreams?.find(ms => ms.Type === 'Audio' && ms.IsDefault)
+                             || source.MediaStreams?.find(ms => ms.Type === 'Audio');
+            
+            // Extract subtitle streams
+            const subtitleStreams = source.MediaStreams?.filter(ms => ms.Type === 'Subtitle') || [];
+            
+            // Build enriched media info object using safe extraction
+            const mediaInfo = safeExtractMediaInfo(source, videoStream, audioStream);
+            
+            // Build comprehensive description string
+            const streamDescription = buildStreamDescription(mediaInfo);
+            
+            // Build Quality Title (preserved for backward compatibility)
+            let qualityTitle = "";
+            if (videoStream) {
+              qualityTitle += videoStream.DisplayTitle || "";
+              if (videoStream.Width && videoStream.Height) {
+                  if (!qualityTitle.toLowerCase().includes(videoStream.Height + "p") && !qualityTitle.toLowerCase().includes(videoStream.Width + "x" + videoStream.Height)) {
+                      qualityTitle = (qualityTitle ? qualityTitle + " " : "") + `${videoStream.Height}p`;
+                  }
               }
-          }
-          if (videoStream.Codec) {
-              if (!qualityTitle.toLowerCase().includes(videoStream.Codec.toLowerCase())) {
-                    qualityTitle = (qualityTitle ? qualityTitle + " " : "") + videoStream.Codec.toUpperCase();
+              if (videoStream.Codec) {
+                  if (!qualityTitle.toLowerCase().includes(videoStream.Codec.toLowerCase())) {
+                        qualityTitle = (qualityTitle ? qualityTitle + " " : "") + videoStream.Codec.toUpperCase();
+                  }
               }
+          } else if (source.Container) {
+              qualityTitle = source.Container.toUpperCase();
           }
-      } else if (source.Container) {
-          qualityTitle = source.Container.toUpperCase();
-      }
-      if (source.Name && !qualityTitle) {
-            qualityTitle = source.Name;
-      }
-      qualityTitle = qualityTitle || 'Direct Play'; // Fallback title
+          if (source.Name && !qualityTitle) {
+                qualityTitle = source.Name;
+          }
+          qualityTitle = qualityTitle || 'Direct Play'; // Fallback title
 
-      // Extract subtitle streams from MediaStreams
-      const subtitleStreams = source.MediaStreams?.filter(ms => ms.Type === 'Subtitle') || [];
-      
-      // Build subtitle objects
-      const subtitles = subtitleStreams.map(sub => {
-        const codec = sub.Codec?.toLowerCase();
-        const format = CODEC_FORMAT_MAP[codec] || 'srt';
-        
-        return {
-          id: `sub-${embyItem.Id}-${source.Id}-${sub.Index}`,
-          lang: sub.Language || 'und',  // Keep 3-letter ISO 639-2 code, fallback to 'und'
-          url: `${config.serverUrl}/Videos/${embyItem.Id}/${source.Id}/Subtitles/${sub.Index}/Stream.${format}?api_key=${config.accessToken}`
-        };
-      });
-
-      streamDetailsArray.push({
-          directPlayUrl: directPlayUrl,
-          itemName: embyItem.Name,
-          seriesName: seriesName, // Pass the series name if available
-          // Use season/episode numbers directly from the embyItem if it's an episode
-          seasonNumber: embyItem.Type === ITEM_TYPE_EPISODE ? embyItem.ParentIndexNumber : null,
-          episodeNumber: embyItem.Type === ITEM_TYPE_EPISODE ? embyItem.IndexNumber : null,
-          itemId: embyItem.Id,
-          mediaSourceId: source.Id,
-          container: source.Container,
-          videoCodec: videoStream?.Codec || source.VideoCodec || null, // Prefer stream info
-          audioCodec: audioStream?.Codec || null, // Prefer stream info
-          qualityTitle: qualityTitle,
-          embyUrlBase: config.serverUrl,
-          apiKey: config.accessToken, // Exposing API key here
-          subtitles: subtitles // Embedded subtitles array
-      });
-      
+            // Construct direct play URL
+            const directPlayUrl = `${config.serverUrl}/Videos/${embyItem.Id}/stream.${source.Container}?MediaSourceId=${source.Id}&Static=true&api_key=${config.accessToken}&DeviceId=stremio-addon-device-id`;
+            
+            // Format subtitles for Stremio
+            const subtitles = subtitleStreams.map(sub => {
+                const codec = sub.Codec?.toLowerCase();
+                const format = CODEC_FORMAT_MAP[codec] || 'srt';
+                
+                return {
+                    id: `sub-${embyItem.Id}-${source.Id}-${sub.Index}`,
+                    lang: sub.Language || 'und',  // Keep 3-letter ISO 639-2 code, fallback to 'und'
+                    url: `${config.serverUrl}/Videos/${embyItem.Id}/${source.Id}/Subtitles/${sub.Index}/Stream.${format}?api_key=${config.accessToken}`
+                };
+            });
+            
+            // Add enriched stream details (preserve all existing fields for backward compatibility)
+            streamDetailsArray.push({
+                // Existing fields (preserved for backward compatibility)
+                directPlayUrl: directPlayUrl,
+                itemName: embyItem.Name,
+                seriesName: seriesName,
+                seasonNumber: embyItem.Type === ITEM_TYPE_EPISODE ? embyItem.ParentIndexNumber : null,
+                episodeNumber: embyItem.Type === ITEM_TYPE_EPISODE ? embyItem.IndexNumber : null,
+                itemId: embyItem.Id,
+                mediaSourceId: source.Id,
+                container: source.Container,
+                videoCodec: videoStream?.Codec || source.VideoCodec || null,
+                audioCodec: audioStream?.Codec || null,
+                qualityTitle: qualityTitle,
+                embyUrlBase: config.serverUrl,
+                apiKey: config.accessToken,
+                subtitles: subtitles,
+                
+                // New enriched fields
+                streamDescription: streamDescription,
+                mediaInfo: mediaInfo
+            });
+        } catch (error) {
+            console.error(`❌ Error processing MediaSource ${source.Id} for item ${embyItem.Id}:`, error);
+            // Continue to next source instead of failing completely
+            continue;
+        }
     }
 
     if (streamDetailsArray.length === 0) {
         console.warn(`❌ No direct playable sources found for item: ${embyItem.Name} (${embyItem.Id})`);
         return null;
     }
+
+    // Sort streams: Direct Play first, then by quality (highest to lowest)
+    streamDetailsArray.sort((a, b) => {
+        // Direct play priority
+        if (a.mediaInfo?.supportsDirectPlay && !b.mediaInfo?.supportsDirectPlay) return -1;
+        if (!a.mediaInfo?.supportsDirectPlay && b.mediaInfo?.supportsDirectPlay) return 1;
+        
+        // Quality/resolution priority
+        const resOrder = ['4K', '1440p', '1080p', '720p', '576p', '480p', 'SD', 'Unknown'];
+        const aResIndex = resOrder.indexOf(a.mediaInfo?.qualityTag || 'Unknown');
+        const bResIndex = resOrder.indexOf(b.mediaInfo?.qualityTag || 'Unknown');
+        
+        if (aResIndex !== bResIndex) {
+            return aResIndex - bResIndex;
+        }
+        
+        // Bitrate as tiebreaker (higher is better)
+        return (b.mediaInfo?.bitrate || 0) - (a.mediaInfo?.bitrate || 0);
+    });
 
     return streamDetailsArray;
 }

@@ -102,13 +102,23 @@ app.get("/:cfg/stream/:type/:id.json", async (req, res) => {
     const raw = await emby.getStream(id, cfg);         
     const streams = (raw || [])
       .filter(s => s.directPlayUrl)
-      .map(s => ({
-        title : s.qualityTitle || "Direct Play",
-        name  : "Emby",
-        url   : s.directPlayUrl,
-        behaviorHints: { notWebReady: true, bingGroup: "Emby-" + s.qualityTitle },
-        subtitles: s.subtitles || [] // Include subtitles if available
-      }));
+      .map(s => {
+        // Build behaviorHints with enriched data
+        const behaviorHints = {
+          filename: s.mediaInfo?.filename ?? undefined,
+          videoSize: s.mediaInfo?.size ?? undefined,
+          notWebReady: true, // Default to true for safety
+          bingeGroup: `emby-${s.itemId}` // Enables auto-play for series episodes
+        };
+        
+        return {
+          name: "Emby", // Simple consistent name for all streams
+          description: s.streamDescription || s.qualityTitle || "Direct Play", // Full detailed technical information
+          url: s.directPlayUrl,
+          behaviorHints: behaviorHints,
+          subtitles: s.subtitles || [] // Include subtitles if available
+        };
+      });
     res.json({ streams });
   } catch (e) {
     console.error("Stream handler error:", e);
