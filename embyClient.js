@@ -366,7 +366,8 @@ async function findEpisodeItem(parentSeriesItem, seasonNumber, episodeNumber, co
 // --- Helper Functions for Stream Enrichment ---
 
 /**
- * Returns resolution label based on video stream height, accounting for anamorphic content.
+ * Returns resolution label based on video stream dimensions, using Emby's DisplayTitle when available.
+ * Handles different aspect ratios correctly (4K UHD, DCI, ultrawide, etc.)
  * @param {object} videoStream - The video MediaStream object.
  * @returns {string} Quality tag like "4K", "1080p", "720p", etc.
  */
@@ -375,19 +376,63 @@ function getQualityTag(videoStream) {
   
   const height = videoStream.Height;
   const width = videoStream.Width;
+  const displayTitle = videoStream.DisplayTitle || '';
   
-  if (!height && !width) return 'Unknown';
+  // Try to extract resolution from Emby's DisplayTitle first (most accurate)
+  // DisplayTitle often contains formatted resolution like "1080p", "4K", "2160p", etc.
+  const resolutionMatch = displayTitle.match(/\b(\d+k|4k|2160p|1440p|1080p|720p|576p|480p|sd)\b/i);
+  if (resolutionMatch) {
+    const resolution = resolutionMatch[1].toUpperCase();
+    // Normalize variations
+    if (resolution.includes('4K') || resolution.includes('2160')) return '4K';
+    if (resolution.includes('1440')) return '1440p';
+    if (resolution.includes('1080')) return '1080p';
+    if (resolution.includes('720')) return '720p';
+    if (resolution.includes('576')) return '576p';
+    if (resolution.includes('480')) return '480p';
+    if (resolution.includes('SD')) return 'SD';
+  }
   
-  // Calculate effective height for anamorphic content (assume 16:9 if only width available)
-  const effectiveHeight = height || Math.round(width / 1.78);
+  // If DisplayTitle doesn't have resolution, calculate from dimensions
+  if (!width && !height) return 'Unknown';
   
-  if (effectiveHeight >= 2160) return '4K';
-  if (effectiveHeight >= 1440) return '1440p';
-  if (effectiveHeight >= 1080) return '1080p';
-  if (effectiveHeight >= 720) return '720p';
-  if (effectiveHeight >= 576) return '576p';
-  if (effectiveHeight >= 480) return '480p';
+  // Use width-based detection for 4K (handles different aspect ratios correctly)
+  // 4K UHD = 3840x2160, DCI 4K = 4096x2160, ultrawide 4K = 3840x1600+
+  if (width >= 3840 || height >= 2160) {
+    // Further distinguish based on width
+    if (width >= 4096) return '4K DCI';
+    if (width >= 3840) return '4K';
+    // Some tall formats with 2160p height
+    return '2160p';
+  }
+  
+  // Standard resolution detection based on height
+  // Only use height if width-based detection doesn't apply
+  if (height >= 1440) return '1440p';
+  if (height >= 1080) return '1080p';
+  if (height >= 720) return '720p';
+  if (height >= 576) return '576p';
+  if (height >= 480) return '480p';
+  
   return 'SD';
+}
+
+/**
+ * Returns formatted resolution dimensions string (e.g., "3840x2160").
+ * @param {object} videoStream - The video MediaStream object.
+ * @returns {string|null} Resolution dimensions string or null if unavailable.
+ */
+function getResolutionDimensions(videoStream) {
+  if (!videoStream) return null;
+  
+  const width = videoStream.Width;
+  const height = videoStream.Height;
+  
+  if (width && height) {
+    return `${width}x${height}`;
+  }
+  
+  return null;
 }
 
 /**
@@ -500,35 +545,19 @@ function getContainerTag(container) {
 }
 
 /**
- * Detects if the source is a Blu-ray or UHD remux based on container, bitrate, and codec.
+ * Detects if the source is a remux by checking if filename contains "remux".
  * @param {object} source - The MediaSource object.
- * @param {object} videoStream - The video MediaStream object.
- * @returns {boolean} True if detected as remux, false otherwise.
+ * @param {object} videoStream - The video MediaStream object (unused but kept for compatibility).
+ * @returns {boolean} True if filename contains "remux", false otherwise.
  */
 function isRemux(source, videoStream) {
   if (!source) return false;
-  
-  const container = source.Container?.toUpperCase();
-  const bitrate = source.Bitrate;
-  const height = videoStream?.Height;
-  
-  // MKV is typical remux container
-  if (container !== 'MKV') return false;
-  
-  // High bitrate threshold indicators
-  // 4K remux typically > 40 Mbps
-  // 1080p remux typically > 20 Mbps
-  if (height >= 2160 && bitrate > 40000000) return true;
-  if (height >= 1080 && bitrate > 20000000) return true;
   
   // Check filename/path for remux indicator
   const path = source.Path?.toLowerCase() || '';
   const name = source.Name?.toLowerCase() || '';
   
-  if (path.includes('remux') || name.includes('remux')) return true;
-  if (path.includes('bluray') || name.includes('bluray')) return true;
-  
-  return false;
+  return path.includes('remux') || name.includes('remux');
 }
 
 /**
@@ -572,10 +601,13 @@ function formatFileSize(bytes) {
 function buildStreamDescription(mediaInfo) {
   const lines = [];
   
-  // Line 1: Quality + Video Codec
+  // Line 1: Quality + Resolution Dimensions + Video Codec
   const videoLine = [];
   if (mediaInfo.qualityTag && mediaInfo.qualityTag !== 'Unknown') {
     videoLine.push(mediaInfo.qualityTag);
+  }
+  if (mediaInfo.resolutionDimensions) {
+    videoLine.push(mediaInfo.resolutionDimensions);
   }
   if (mediaInfo.videoTag) {
     videoLine.push(mediaInfo.videoTag);
@@ -631,6 +663,7 @@ function safeExtractMediaInfo(source, videoStream, audioStream) {
   try {
     return {
       qualityTag: getQualityTag(videoStream),
+      resolutionDimensions: getResolutionDimensions(videoStream),
       videoTag: getVideoTag(videoStream),
       videoCodec: videoStream?.Codec,
       hdrTag: getHdrTag(videoStream),
@@ -652,6 +685,7 @@ function safeExtractMediaInfo(source, videoStream, audioStream) {
     // Return minimal fallback info
     return {
       qualityTag: 'Unknown',
+      resolutionDimensions: null,
       videoTag: '',
       hdrTag: null,
       audioTag: '',
