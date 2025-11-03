@@ -565,61 +565,59 @@ function formatFileSize(bytes) {
 }
 
 /**
- * Creates comprehensive description string with all technical details.
+ * Creates comprehensive description string with all technical details in 4-line format.
  * @param {object} mediaInfo - Enriched media information object.
- * @returns {string} Description string with all available metadata.
+ * @returns {string} Multi-line description string with all available metadata.
  */
 function buildStreamDescription(mediaInfo) {
-  const parts = [];
+  const lines = [];
   
-  // Quality/Resolution
+  // Line 1: Quality + Video Codec
+  const videoLine = [];
   if (mediaInfo.qualityTag && mediaInfo.qualityTag !== 'Unknown') {
-    parts.push(mediaInfo.qualityTag);
+    videoLine.push(mediaInfo.qualityTag);
   }
-  
-  // Video codec
   if (mediaInfo.videoTag) {
-    parts.push(mediaInfo.videoTag);
+    videoLine.push(mediaInfo.videoTag);
+  }
+  if (videoLine.length > 0) {
+    lines.push(videoLine.join(' • '));
   }
   
-  // HDR indicator
+  // Line 2: HDR + REMUX tags (special indicators)
+  const specialLine = [];
   if (mediaInfo.hdrTag) {
-    parts.push(mediaInfo.hdrTag);
+    specialLine.push(mediaInfo.hdrTag);
   }
-  
-  // Remux indicator
   if (mediaInfo.isRemux) {
-    parts.push('REMUX');
+    specialLine.push('REMUX');
+  }
+  if (specialLine.length > 0) {
+    lines.push(specialLine.join(' • '));
   }
   
-  // Audio codec and channels
+  // Line 3: Audio information
   if (mediaInfo.audioTag) {
-    parts.push(mediaInfo.audioTag);
+    lines.push(mediaInfo.audioTag);
   }
   
-  // Container format
+  // Line 4: Container, Bitrate, Size
+  const fileLine = [];
   if (mediaInfo.container) {
-    parts.push(mediaInfo.container);
+    fileLine.push(mediaInfo.container);
   }
-  
-  // Bitrate
   if (mediaInfo.bitrateFormatted) {
-    parts.push(mediaInfo.bitrateFormatted);
+    fileLine.push(mediaInfo.bitrateFormatted);
   }
-  
-  // File size
   if (mediaInfo.sizeFormatted) {
-    parts.push(mediaInfo.sizeFormatted);
+    fileLine.push(mediaInfo.sizeFormatted);
+  }
+  if (fileLine.length > 0) {
+    lines.push(fileLine.join(' • '));
   }
   
-  const description = parts.join(' • ');
-  
-  // Truncate if exceeds recommended length (keep readable on all devices)
-  if (description.length > 100) {
-    return description.substring(0, 97) + '...';
-  }
-  
-  return description || 'Stream Available';
+  // Join all lines with newline character
+  return lines.join('\n') || 'Stream Available';
 }
 
 /**
