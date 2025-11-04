@@ -702,6 +702,52 @@ function safeExtractMediaInfo(source, videoStream, audioStream) {
 }
 
 /**
+ * Sorts streams by quality (highest first) and deduplicates by mediaSourceId.
+ * @param {Array<object>} streams - Array of stream objects.
+ * @returns {Array<object>} Deduplicated and sorted streams.
+ */
+function deduplicateAndSortStreams(streams) {
+    if (!streams || streams.length === 0) return [];
+    
+    // Deduplicate by mediaSourceId
+    const uniqueStreams = Array.from(
+        new Map(streams.map(stream => [stream.mediaSourceId, stream])).values()
+    );
+    
+    // Sort by quality (highest to lowest)
+    uniqueStreams.sort((a, b) => {
+        // 1. Direct play priority
+        const aDirectPlay = a.mediaInfo?.supportsDirectPlay ?? false;
+        const bDirectPlay = b.mediaInfo?.supportsDirectPlay ?? false;
+        if (aDirectPlay !== bDirectPlay) return bDirectPlay ? 1 : -1;
+        
+        // 2. Quality order
+        const resOrder = {
+            '4K DCI': 0, '4K': 1, '2160p': 2, '1440p': 3, '1080p': 4,
+            '720p': 5, '576p': 6, '480p': 7, '360p': 8, 'SD': 9, 'Unknown': 10
+        };
+        const aRes = resOrder[a.mediaInfo?.qualityTag] ?? 10;
+        const bRes = resOrder[b.mediaInfo?.qualityTag] ?? 10;
+        if (aRes !== bRes) return aRes - bRes;
+        
+        // 3. HDR priority
+        const aHdr = a.mediaInfo?.hdrTag ? 1 : 0;
+        const bHdr = b.mediaInfo?.hdrTag ? 1 : 0;
+        if (aHdr !== bHdr) return bHdr - aHdr;
+        
+        // 4. REMUX priority
+        const aRemux = a.mediaInfo?.isRemux ? 1 : 0;
+        const bRemux = b.mediaInfo?.isRemux ? 1 : 0;
+        if (aRemux !== bRemux) return bRemux - aRemux;
+        
+        // 5. Bitrate tiebreaker
+        return (b.mediaInfo?.bitrate || 0) - (a.mediaInfo?.bitrate || 0);
+    });
+    
+    return uniqueStreams;
+}
+
+/**
  * Gets playback information for an Emby item and generates direct play stream URLs.
  * @param {object} embyItem - The Emby movie or episode item (must have Id, Name, Type).
  * @param {string|null} [seriesName=null] - Optional: The name of the series if item is an episode.
@@ -814,25 +860,6 @@ async function getPlaybackStreams(embyItem, seriesName = null, config) {
         return null;
     }
 
-    // Sort streams: Direct Play first, then by quality (highest to lowest)
-    streamDetailsArray.sort((a, b) => {
-        // Direct play priority
-        if (a.mediaInfo?.supportsDirectPlay && !b.mediaInfo?.supportsDirectPlay) return -1;
-        if (!a.mediaInfo?.supportsDirectPlay && b.mediaInfo?.supportsDirectPlay) return 1;
-        
-        // Quality/resolution priority
-        const resOrder = ['4K', '1440p', '1080p', '720p', '576p', '480p', 'SD', 'Unknown'];
-        const aResIndex = resOrder.indexOf(a.mediaInfo?.qualityTag || 'Unknown');
-        const bResIndex = resOrder.indexOf(b.mediaInfo?.qualityTag || 'Unknown');
-        
-        if (aResIndex !== bResIndex) {
-            return aResIndex - bResIndex;
-        }
-        
-        // Bitrate as tiebreaker (higher is better)
-        return (b.mediaInfo?.bitrate || 0) - (a.mediaInfo?.bitrate || 0);
-    });
-
     return streamDetailsArray;
 }
 
@@ -891,7 +918,8 @@ async function getStream(idOrExternalId, config) {
                     }
                 }
                 if (allStreams.length > 0) {
-                    return allStreams;
+                    // Deduplicate and sort streams
+                    return deduplicateAndSortStreams(allStreams);
                 } else {
                     if (failedSeries === totalSeries) {
                         console.warn(`📭 Could not find episode S${parsedId.seasonNumber}E${parsedId.episodeNumber} for ${fullIdForLog} in any matching series.`);
@@ -913,7 +941,8 @@ async function getStream(idOrExternalId, config) {
                 const streams = await getPlaybackStreams(item, parentSeriesName, config);
                 if (streams) allStreams.push(...streams);
             }
-            return allStreams.length > 0 ? allStreams : null;
+            // Deduplicate and sort streams
+            return allStreams.length > 0 ? deduplicateAndSortStreams(allStreams) : null;
         } else {
              console.warn(`📭 No Emby match found for ${fullIdForLog} after all attempts.`);
             return null;
@@ -928,5 +957,6 @@ async function getStream(idOrExternalId, config) {
 // --- Exports ---
 module.exports = {
     getStream,
-    parseMediaId
+    parseMediaId,
+    deduplicateAndSortStreams
 };
