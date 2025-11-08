@@ -46,10 +46,64 @@ function baseManifest () {
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// Helper: decode the cfg string into an object
+// Helper: decode the cfg string into an object with defaults for backward compatibility
 // ──────────────────────────────────────────────────────────────────────────
 function decodeCfg(str) {
-  return JSON.parse(Buffer.from(str, "base64url").toString("utf8"));
+  const cfg = JSON.parse(Buffer.from(str, "base64url").toString("utf8"));
+  
+  // Set defaults for new features to maintain backward compatibility
+  // If these fields don't exist, use sensible defaults
+  if (cfg.showServerName === undefined) cfg.showServerName = false; // Default: hide server name
+  if (!cfg.streamName) cfg.streamName = "Emby"; // Default: "Emby"
+  if (!cfg.hideStreamTypes) cfg.hideStreamTypes = []; // Default: show all stream types
+  
+  return cfg;
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Helper: check if a stream should be filtered based on hideStreamTypes config
+// ──────────────────────────────────────────────────────────────────────────
+function shouldFilterStream(stream, hideStreamTypes) {
+  if (!hideStreamTypes || hideStreamTypes.length === 0) return false;
+  
+  const mediaInfo = stream.mediaInfo || {};
+  
+  // Check for 4K streams
+  if (hideStreamTypes.includes('4K')) {
+    const qualityTag = mediaInfo.qualityTag || '';
+    if (qualityTag.includes('4K') || qualityTag === '2160p') {
+      return true;
+    }
+  }
+  
+  // Check for Dolby Vision (DV)
+  if (hideStreamTypes.includes('DV') || hideStreamTypes.includes('DolbyVision')) {
+    const hdrTag = mediaInfo.hdrTag || '';
+    if (hdrTag === 'DV' || hdrTag === 'DolbyVision') {
+      return true;
+    }
+  }
+  
+  // Check for HDR tags (HDR10, HDR10+, HLG, or any HDR)
+  if (hideStreamTypes.includes('HDR') || hideStreamTypes.includes('HDRTag')) {
+    const hdrTag = mediaInfo.hdrTag || '';
+    if (hdrTag && (hdrTag.includes('HDR') || hdrTag === 'HLG' || hdrTag === 'DV')) {
+      return true;
+    }
+  }
+  
+  // Check for specific HDR types
+  if (hideStreamTypes.includes('HDR10')) {
+    if (mediaInfo.hdrTag === 'HDR10') return true;
+  }
+  if (hideStreamTypes.includes('HDR10+')) {
+    if (mediaInfo.hdrTag === 'HDR10+') return true;
+  }
+  if (hideStreamTypes.includes('HLG')) {
+    if (mediaInfo.hdrTag === 'HLG') return true;
+  }
+  
+  return false;
 }   
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -76,8 +130,11 @@ app.get("/:cfg/manifest.json", (req, res) => {
 
   mf.id += "." + cfgString.slice(0, 8); 
 
-  const serverHostname = (cfg && cfg.serverUrl) ? cfg.serverUrl.replace(/^https?:\/\//, "") : "Unknown Server";
-  mf.name += ` (${serverHostname})`;
+  // Conditionally show server name based on config (defaults to false - server name hidden by default)
+  if (cfg.showServerName === true) {
+    const serverHostname = (cfg && cfg.serverUrl) ? cfg.serverUrl.replace(/^https?:\/\//, "") : "Unknown Server";
+    mf.name += ` (${serverHostname})`;
+  }
   mf.behaviorHints.configurationRequired = false;
 
   res.json(mf);
@@ -99,9 +156,17 @@ app.get("/:cfg/stream/:type/:id.json", async (req, res) => {
     return res.json({ streams: [] });
 
   try {
-    const raw = await emby.getStream(id, cfg);         
+    const raw = await emby.getStream(id, cfg);
+    
+    // Get custom stream name from config (defaults to "Emby" for backward compatibility)
+    const streamName = cfg.streamName || "Emby";
+    
+    // Get hideStreamTypes from config (defaults to empty array for backward compatibility)
+    const hideStreamTypes = cfg.hideStreamTypes || [];
+         
     const streams = (raw || [])
       .filter(s => s.directPlayUrl)
+      .filter(s => !shouldFilterStream(s, hideStreamTypes)) // Filter based on user preferences
       .map(s => {
         // Build behaviorHints with enriched data
         const behaviorHints = {
@@ -112,7 +177,7 @@ app.get("/:cfg/stream/:type/:id.json", async (req, res) => {
         };
         
         return {
-          name: "Emby", // Simple consistent name for all streams
+          name: streamName, // Use custom stream name from config
           description: s.streamDescription || s.qualityTitle || "Direct Play", // Full detailed technical information
           url: s.directPlayUrl,
           behaviorHints: behaviorHints,
