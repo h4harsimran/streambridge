@@ -25,7 +25,7 @@ app.use(express.static(path.join(__dirname, "public")));
 function baseManifest () {
   return {
     id      : "org.streambridge.embyresolver",
-    version : "1.1.2",
+    version : "1.1.3",
     name    : "StreamBridge: Emby to Stremio",
     description:
       "Stream media from your personal or shared Emby server using IMDb/TMDB IDs.",
