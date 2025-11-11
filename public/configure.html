@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>StreamBridge • Emby ↔ Stremio Setup</title>
+<title>StreamBridge • Emby/Jellyfin ↔ Stremio Setup</title>
 
 <!-- ----------  Design tokens  ---------- -->
 <style>
@@ -107,6 +107,67 @@ pre{
   transition:opacity .25s ease;
 }
 .toast.show{opacity:1}
+
+/* Server Type Selection Cards */
+.server-selection {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.server-card {
+  background: #162029;
+  border: 2px solid #1f2a35;
+  border-radius: 12px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  position: relative;
+}
+.server-card:hover {
+  border-color: #334155;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.server-card.selected {
+  border-color: var(--accent);
+  background: #1a2e1f;
+  box-shadow: 0 0 0 3px rgba(34,197,94,0.1);
+}
+.server-card.selected::after {
+  content: "✓";
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 24px;
+  height: 24px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: bold;
+}
+.server-card-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+.server-card-desc {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+@media (max-width: 640px) {
+  .server-selection {
+    grid-template-columns: 1fr;
+  }
+}
+
 iframe.floatingchat-container,
 iframe[id*="kofi-wo-container"] {
   width: 180px !important;      /* Match button's max width */
@@ -124,6 +185,7 @@ iframe[id*="kofi-wo-container"] {
 <div class="panel">
   <h1>StreamBridge Setup</h1>
   <p style="text-align:center;margin-top:0.5rem;font-size:.8rem;color:var(--text-dim)">
+    Stream from your Emby or Jellyfin server to Stremio<br>
     Need help? See <a href="https://github.com/h4harsimran/streambridge" target="_blank">docs on GitHub</a>.
   </p>
   
@@ -134,27 +196,42 @@ iframe[id*="kofi-wo-container"] {
       <strong style="color:#fbbf24;">Important: HTTPS Required</strong>
     </div>
     <p style="margin:0;font-size:0.9rem;color:var(--text-dim);line-height:1.4;">
-      This addon only works with Emby servers accessible via <strong>HTTPS</strong>. 
-      HTTP and localhost addresses are not supported. Make sure your Emby server is accessible 
+      This addon only works with Emby or Jellyfin servers accessible via <strong>HTTPS</strong>. 
+      HTTP and localhost addresses are not supported. Make sure your server is accessible 
       through a secure HTTPS connection.
     </p>
   </div>
 
-  <!--  1· Helper  -->
-  <h2>1 · Fetch User ID & Token</h2>
+  <!--  1· Server Type Selection  -->
+  <h2>1 · Select Server Type</h2>
+  <div style="margin-bottom:1.5rem;">
+    <div class="server-selection">
+      <div class="server-card emby" data-server-type="emby" id="serverCardEmby">
+        <div class="server-card-name">Emby</div>
+      </div>
+      <div class="server-card jellyfin" data-server-type="jellyfin" id="serverCardJellyfin">
+        <div class="server-card-name">Jellyfin</div>
+      </div>
+    </div>
+    <!-- Hidden input to store selected server type -->
+    <input type="hidden" id="selectedServerType" value="emby">
+  </div>
+
+  <!--  2· Helper  -->
+  <h2>2 · Fetch User ID & Token</h2>
   <div class="form-group">
     <form id="helper">
       <div class="field-group">
-        <label>Emby Server URL</label>
+        <label>Server URL</label>
         <input name="url" placeholder="https://example.com:8096" required>
       </div>
       <div class="field-group">
-        <label>Server Username (not Emby Connect)</label>
-        <input name="user" placeholder="Your Emby server username" required>
+        <label>Server Username</label>
+        <input name="user" placeholder="Your server username" required>
       </div>
       <div class="field-group">
-        <label>Server Password (not Emby Connect)</label>
-        <input name="pass" type="password" placeholder="Your Emby server password" required>
+        <label>Server Password</label>
+        <input name="pass" type="password" placeholder="Your server password" required>
       </div>
       <button id="helperBtn">Get Access Info</button>
     </form>
@@ -165,13 +242,15 @@ iframe[id*="kofi-wo-container"] {
     <small style="margin-top:.6rem;display:block">Access Token</small><pre id="tok"></pre>
   </div>
 
-  <!--  2· Configure  -->
+  <!--  3· Configure  -->
   <hr class="section-divider">
-  <h2>2 · Generate Install Link</h2>
+  <h2>3 · Generate Install Link</h2>
   <form id="cfg">
     <div class="form-group">
+      <!-- Hidden input to store server type from selection -->
+      <input type="hidden" name="serverType" id="cfgServerType" value="emby">
       <div class="field-group">
-        <label>Emby Server URL</label>
+        <label>Server URL</label>
         <input name="serverUrl" required>
       </div>
       <div class="field-group">
@@ -198,8 +277,8 @@ iframe[id*="kofi-wo-container"] {
       
       <div class="field-group">
         <label class="description-after">Stream Name (displayed in Stremio)</label>
-        <small>Custom name for streams (default: "Emby")</small>
-        <input name="streamName" placeholder="Emby" value="Emby">
+        <small id="streamNameHint">Custom name for streams (defaults to "Emby")</small>
+        <input name="streamName" id="streamNameInput" placeholder="Emby" value="">
       </div>
       
       <div class="field-group">
@@ -244,7 +323,75 @@ const toast = msg =>{
   setTimeout(()=>t.classList.remove("show"),2200);
 };
 
-/*── 1 · Helper ──*/
+// Function to sync server type throughout the form
+function syncServerType(serverType) {
+  const selectedServerType = $("#selectedServerType");
+  const cfgServerType = $("#cfgServerType");
+  const streamNameInput = $("#streamNameInput");
+  const streamNameHint = $("#streamNameHint");
+  const embyCard = $("#serverCardEmby");
+  const jellyfinCard = $("#serverCardJellyfin");
+  
+  // Update hidden inputs
+  if (selectedServerType) {
+    selectedServerType.value = serverType || "emby";
+  }
+  if (cfgServerType) {
+    cfgServerType.value = serverType || "emby";
+  }
+  
+  // Update card selection visual state
+  if (embyCard && jellyfinCard) {
+    if (serverType === "jellyfin") {
+      embyCard.classList.remove("selected");
+      jellyfinCard.classList.add("selected");
+    } else {
+      embyCard.classList.add("selected");
+      jellyfinCard.classList.remove("selected");
+    }
+  }
+  
+  // Update stream name placeholder and hint based on server type
+  if (streamNameInput && streamNameHint) {
+    const defaultName = serverType === "jellyfin" ? "Jellyfin" : "Emby";
+    const currentValue = streamNameInput.value.trim();
+    
+    // Update placeholder
+    streamNameInput.placeholder = defaultName;
+    
+    // Only auto-update the value if it's empty or matches the old default
+    // Don't overwrite custom values
+    if (!currentValue || currentValue === "Emby" || currentValue === "Jellyfin") {
+      // Only clear if it was the opposite default (e.g., had "Emby" but switched to Jellyfin)
+      // If empty, leave it empty so user can see the placeholder
+      if (currentValue && currentValue !== defaultName) {
+        streamNameInput.value = "";
+      }
+    }
+    
+    streamNameHint.textContent = `Custom name for streams (defaults to "${defaultName}")`;
+  }
+}
+
+// Server card selection handlers
+const embyCardEl = $("#serverCardEmby");
+const jellyfinCardEl = $("#serverCardJellyfin");
+
+if (embyCardEl) {
+  embyCardEl.addEventListener("click", ()=>{
+    syncServerType("emby");
+  });
+}
+if (jellyfinCardEl) {
+  jellyfinCardEl.addEventListener("click", ()=>{
+    syncServerType("jellyfin");
+  });
+}
+
+// Initialize server type on page load (default to Emby)
+syncServerType("emby");
+
+/*── 2 · Helper ──*/
 $("#helper").addEventListener("submit", async e=>{
   e.preventDefault();
   const f=new FormData(e.target),
@@ -256,18 +403,25 @@ $("#helper").addEventListener("submit", async e=>{
 
   // Ensure HTTPS
   if(!url.startsWith("https://")) {
-    alert("❌ Please use HTTPS URLs only. Your Emby server must be accessible via HTTPS for this addon to work.");
+    alert("❌ Please use HTTPS URLs only. Your server must be accessible via HTTPS for this addon to work.");
     btn.disabled=false;btn.textContent="Get Access Info";
     return;
   }
+
+  // Get server type from selected server type (not from form, since we removed it)
+  const selectedServerTypeEl = $("#selectedServerType");
+  const serverType = selectedServerTypeEl ? selectedServerTypeEl.value : "emby";
+  
+  // Use appropriate authorization header based on server type
+  const authHeader = serverType === "jellyfin" ? "X-MediaBrowser-Authorization" : "X-Emby-Authorization";
 
   try{
     const res=await fetch(`${url}/Users/AuthenticateByName`,{
       method:"POST",
       headers:{
         "Content-Type":"application/json",
-        "X-Emby-Authorization":
-          'MediaBrowser Client="StreamBridge", Device="WebHelper", DeviceId="webhelper", Version="1.0.0"'
+        [authHeader]:
+          'MediaBrowser Client="StreamBridge", Device="WebHelper", DeviceId="webhelper", Version="1.2.0"'
       },
       body:JSON.stringify({Username:user,Pw:pass})
     });
@@ -280,6 +434,9 @@ $("#helper").addEventListener("submit", async e=>{
 
     /* autofill config form */
     const cf=$("#cfg");
+    // Sync server type to Step 2
+    syncServerType(serverType);
+    // Autofill form fields
     cf.serverUrl.value   ||= url;
     cf.userId.value      ||= data?.User?.Id||"";
     cf.accessToken.value ||= data?.AccessToken||"";
@@ -290,16 +447,25 @@ $("#helper").addEventListener("submit", async e=>{
   }
 });
 
-/*── 2 · Config ──*/
+/*── 3 · Config ──*/
 $("#cfg").addEventListener("submit",e=>{
   e.preventDefault();
   const formData = new FormData(e.target);
   const cfg = {};
   
   // Required fields
+  // Get server type from selected server type or hidden input
+  const selectedServerTypeEl = $("#selectedServerType");
+  cfg.serverType = (selectedServerTypeEl ? selectedServerTypeEl.value : null) || formData.get("serverType") || "emby"; // Default to emby for backward compatibility
   cfg.serverUrl = formData.get("serverUrl");
   cfg.userId = formData.get("userId");
   cfg.accessToken = formData.get("accessToken");
+  
+  // Validate required fields
+  if (!cfg.serverUrl || !cfg.userId || !cfg.accessToken) {
+    alert("❌ Please fill in all required fields (Server URL, User ID, and Access Token).");
+    return;
+  }
   
   // New optional fields
   // showServerName: convert checkbox to boolean (checked = true, unchecked = false)
@@ -307,7 +473,7 @@ $("#cfg").addEventListener("submit",e=>{
   const showServerNameValue = formData.get("showServerName");
   cfg.showServerName = showServerNameValue !== null && showServerNameValue !== undefined;
   
-  // streamName: use provided value or default to "Emby"
+  // streamName: use provided value or leave empty for auto-detection based on server type
   const streamName = formData.get("streamName");
   if (streamName && streamName.trim()) {
     cfg.streamName = streamName.trim();
@@ -323,8 +489,13 @@ $("#cfg").addEventListener("submit",e=>{
 
   // Ensure HTTPS in config form
   if(!serverUrl.startsWith("https://")) {
-    alert("❌ Please use HTTPS URLs only. Your Emby server must be accessible via HTTPS for this addon to work.");
+    alert("❌ Please use HTTPS URLs only. Your server must be accessible via HTTPS for this addon to work.");
     return;
+  }
+  
+  // Validate server type is either 'emby' or 'jellyfin'
+  if (cfg.serverType !== "emby" && cfg.serverType !== "jellyfin") {
+    cfg.serverType = "emby"; // Default to emby if invalid
   }
 
   const cfg64=btoa(unescape(encodeURIComponent(JSON.stringify(cfg))))

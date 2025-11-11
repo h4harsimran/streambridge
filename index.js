@@ -1,5 +1,5 @@
 /**
- * StreamBridge – Emby → Stremio addon
+ * StreamBridge – Emby/Jellyfin → Stremio addon
  * Full Express server with parameterised manifest + stream routes
  * User data is embedded in the URL path as a base64-url string.
  */
@@ -7,7 +7,8 @@
 const express      = require("express");
 const path         = require("path");
 const cors         = require("cors");
-const emby         = require("./embyClient");   
+const embyClient   = require("./lib/embyClient");
+const jellyfinClient = require("./lib/jellyfinClient");
 require("dotenv").config();
 
 const PORT = process.env.PORT || 7000;
@@ -25,10 +26,10 @@ app.use(express.static(path.join(__dirname, "public")));
 function baseManifest () {
   return {
     id      : "org.streambridge.embyresolver",
-    version : "1.1.3",
-    name    : "StreamBridge: Emby to Stremio",
+    version : "1.2.0",
+    name    : "StreamBridge: Emby/Jellyfin to Stremio",
     description:
-      "Stream media from your personal or shared Emby server using IMDb/TMDB IDs.",
+      "Stream media from your personal or shared Emby or Jellyfin server using IMDb/TMDB IDs.",
     catalogs : [],
     resources: [
       { name: "stream",
@@ -38,9 +39,9 @@ function baseManifest () {
     types: ["movie", "series"],
     behaviorHints: { configurable: true, configurationRequired: true },
     config: [
-      { key: "serverUrl",   type: "text", title: "Emby Server URL",  required: true },
-      { key: "userId",      type: "text", title: "Emby User ID",     required: true },
-      { key: "accessToken", type: "text", title: "Emby Access Token", required: true }
+      { key: "serverUrl",   type: "text", title: "Server URL (Emby or Jellyfin)",  required: true },
+      { key: "userId",      type: "text", title: "User ID",     required: true },
+      { key: "accessToken", type: "text", title: "Access Token", required: true }
     ]
   };
 }
@@ -53,8 +54,12 @@ function decodeCfg(str) {
   
   // Set defaults for new features to maintain backward compatibility
   // If these fields don't exist, use sensible defaults
+  if (!cfg.serverType) cfg.serverType = 'emby'; // Default: Emby for backward compatibility
   if (cfg.showServerName === undefined) cfg.showServerName = false; // Default: hide server name
-  if (!cfg.streamName) cfg.streamName = "Emby"; // Default: "Emby"
+  if (!cfg.streamName) {
+    // Default stream name based on server type
+    cfg.streamName = cfg.serverType === 'jellyfin' ? 'Jellyfin' : 'Emby';
+  }
   if (!cfg.hideStreamTypes) cfg.hideStreamTypes = []; // Default: show all stream types
   
   return cfg;
@@ -152,13 +157,18 @@ app.get("/:cfg/stream/:type/:id.json", async (req, res) => {
     return res.json({ streams: [] });
 
   try {
-    const raw = await emby.getStream(id, cfg);
+    // Select the appropriate client based on serverType (defaults to 'emby' for backward compatibility)
+    const client = cfg.serverType === 'jellyfin' ? jellyfinClient : embyClient;
+    const raw = await client.getStream(id, cfg);
     
-    // Get custom stream name from config (defaults to "Emby" for backward compatibility)
-    const streamName = cfg.streamName || "Emby";
+    // Get custom stream name from config (defaults based on server type)
+    const streamName = cfg.streamName || (cfg.serverType === 'jellyfin' ? 'Jellyfin' : 'Emby');
     
     // Get hideStreamTypes from config (defaults to empty array for backward compatibility)
     const hideStreamTypes = cfg.hideStreamTypes || [];
+    
+    // Get server type for bingeGroup (defaults to 'emby' for backward compatibility)
+    const serverType = cfg.serverType || 'emby';
          
     const streams = (raw || [])
       .filter(s => s.directPlayUrl)
@@ -169,7 +179,7 @@ app.get("/:cfg/stream/:type/:id.json", async (req, res) => {
           filename: s.mediaInfo?.filename ?? undefined,
           videoSize: s.mediaInfo?.size ?? undefined,
           notWebReady: true, // Default to true for safety
-          bingeGroup: `emby-${s.itemId}` // Enables auto-play for series episodes
+          bingeGroup: `${serverType}-${s.itemId}` // Enables auto-play for series episodes
         };
         
         return {
