@@ -52,6 +52,11 @@ function baseManifest () {
 function decodeCfg(str) {
   const cfg = JSON.parse(Buffer.from(str, "base64url").toString("utf8"));
   
+  // Normalize serverUrl: remove trailing slash to prevent double slashes in API calls
+  if (cfg.serverUrl) {
+    cfg.serverUrl = cfg.serverUrl.replace(/\/+$/, '');
+  }
+  
   // Set defaults for new features to maintain backward compatibility
   // If these fields don't exist, use sensible defaults
   if (!cfg.serverType) cfg.serverType = 'emby'; // Default: Emby for backward compatibility
