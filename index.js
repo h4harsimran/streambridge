@@ -62,45 +62,41 @@ function decodeCfg(str) {
 
 // ──────────────────────────────────────────────────────────────────────────
 // Helper: check if a stream should be filtered based on hideStreamTypes config
+// Returns true if the stream matches ANY of the selected types to hide
 // ──────────────────────────────────────────────────────────────────────────
 function shouldFilterStream(stream, hideStreamTypes) {
   if (!hideStreamTypes || hideStreamTypes.length === 0) return false;
   
   const mediaInfo = stream.mediaInfo || {};
+  const qualityTag = mediaInfo.qualityTag || '';
+  const hdrTag = mediaInfo.hdrTag || '';
   
   // Check for 4K streams
   if (hideStreamTypes.includes('4K')) {
-    const qualityTag = mediaInfo.qualityTag || '';
     if (qualityTag.includes('4K') || qualityTag === '2160p') {
       return true;
     }
   }
   
+  // Check for 1080p streams
+  if (hideStreamTypes.includes('1080p')) {
+    if (qualityTag === '1080p') {
+      return true;
+    }
+  }
+  
   // Check for Dolby Vision (DV)
-  if (hideStreamTypes.includes('DV') || hideStreamTypes.includes('DolbyVision')) {
-    const hdrTag = mediaInfo.hdrTag || '';
+  if (hideStreamTypes.includes('DV')) {
     if (hdrTag === 'DV' || hdrTag === 'DolbyVision') {
       return true;
     }
   }
   
-  // Check for HDR tags (HDR10, HDR10+, HLG, or any HDR)
-  if (hideStreamTypes.includes('HDR') || hideStreamTypes.includes('HDRTag')) {
-    const hdrTag = mediaInfo.hdrTag || '';
-    if (hdrTag && (hdrTag.includes('HDR') || hdrTag === 'HLG' || hdrTag === 'DV')) {
+  // Check for HDR tags (any HDR variant: HDR10, HDR10+, HLG, DV, etc.)
+  if (hideStreamTypes.includes('HDR')) {
+    if (hdrTag && (hdrTag.includes('HDR') || hdrTag === 'HLG' || hdrTag === 'DV' || hdrTag === 'DolbyVision')) {
       return true;
     }
-  }
-  
-  // Check for specific HDR types
-  if (hideStreamTypes.includes('HDR10')) {
-    if (mediaInfo.hdrTag === 'HDR10') return true;
-  }
-  if (hideStreamTypes.includes('HDR10+')) {
-    if (mediaInfo.hdrTag === 'HDR10+') return true;
-  }
-  if (hideStreamTypes.includes('HLG')) {
-    if (mediaInfo.hdrTag === 'HLG') return true;
   }
   
   return false;

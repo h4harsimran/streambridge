@@ -29,27 +29,66 @@ body{
 
 h1{margin:.5rem 0 0.5rem;text-align:center;font-size:1.6rem;font-weight:600}
 h2{margin:2rem 0 .75rem;font-size:1.15rem;font-weight:600;color:var(--text-dim)}
+h3{margin:1.5rem 0 .75rem;font-size:1rem;font-weight:600;color:var(--text-dim)}
 small{font-size:.8rem;color:var(--text-dim)}
 a{color:var(--accent);text-decoration:none}
 a:hover{text-decoration:underline}
+
+/* Visual grouping and separation */
+.section-divider{
+  height:1px;background:linear-gradient(to right,transparent,#283141 20%,#283141 80%,transparent);
+  margin:2.5rem 0 1.5rem;border:none;
+}
+.form-group{
+  background:#162029;border:1px solid #1f2a35;border-radius:10px;
+  padding:1.25rem;margin-bottom:1rem;
+}
+.form-group form{display:flex;flex-direction:column;gap:0}
+.form-group button{margin-top:0.75rem}
+.advanced-group{
+  background:#162029;border:1px solid #1f2a35;border-radius:10px;
+  padding:1.25rem;margin-top:0;
+}
+.advanced-group h3{margin-top:0;margin-bottom:1.25rem;padding-bottom:0.75rem;border-bottom:1px solid #1f2a35}
+.field-group{margin-bottom:1.25rem}
+.field-group:last-child{margin-bottom:0}
+/* Standard label styling - all labels in field-group */
+.field-group > label{font-weight:500;color:var(--text)}
+/* Regular labels (not flex/checkbox) */
+.field-group > label:not([style*="display:flex"]){margin-bottom:0.4rem;margin-top:0}
+.field-group > label:not([style*="display:flex"]) + input{margin-top:0}
+/* Labels with descriptions - small text appears right after label */
+.field-group > label + small{margin-top:-0.15rem;margin-bottom:0.5rem}
+.field-group > label + small + input{margin-top:0}
+/* Checkbox labels (flex containers with inline checkbox) */
+.field-group > label[style*="display:flex"]{margin-bottom:0.5rem;margin-top:0;font-weight:normal}
+/* Small text after checkbox labels */
+.field-group > label[style*="display:flex"] + small{margin-top:0;margin-bottom:0}
+.form-output{
+  background:#162029;border:1px solid #1f2a35;border-radius:10px;
+  padding:1.25rem;margin-top:1rem;
+}
 
 .panel{
   background:var(--panel);padding:2rem;border-radius:var(--radius);
   width:100%;max-width:600px;box-shadow:var(--shadow);
 }
-form{display:grid;gap:var(--gap)}
-label{font-size:.9rem;margin-bottom:.25rem}
+form{display:flex;flex-direction:column;gap:0}
+label{font-size:.9rem;display:block;font-weight:500;color:var(--text)}
+small{font-size:.8rem;color:var(--text-dim);line-height:1.4;display:block}
 input{
   width:100%;padding:.65rem .8rem;border-radius:8px;border:1px solid #334155;
   background:#0f1722;color:var(--text);font-size:.95rem;
 }
 input:focus{outline:2px solid var(--accent);outline-offset:0}
-
+input[type="checkbox"]{width:auto;margin:0 .5rem 0 0;cursor:pointer}
+form#cfg{display:flex;flex-direction:column;gap:0}
+form#cfg > *{width:100%}
 button{
   display:inline-flex;align-items:center;justify-content:center;
   gap:.45rem;padding:.75rem 1rem;font-weight:600;font-size:.96rem;
   border:0;border-radius:8px;background:var(--accent);color:#fff;cursor:pointer;
-  transition:.18s transform,.18s background;
+  transition:.18s transform,.18s background;width:100%;
 }
 button:hover{background:var(--accent-d);transform:translateY(-1px)}
 button:disabled{opacity:.45;cursor:default;transform:none}
@@ -103,76 +142,94 @@ iframe[id*="kofi-wo-container"] {
 
   <!--  1· Helper  -->
   <h2>1 · Fetch User ID & Token</h2>
-  <form id="helper">
-    <label>Emby Server URL</label>
-    <input name="url" placeholder="https://example.com:8096" required>
-    <label>Server Username (not Emby Connect)</label>
-    <input name="user" placeholder="Your Emby server username" required>
-    <label>Server Password (not Emby Connect)</label>
-    <input name="pass" type="password" placeholder="Your Emby server password" required>
-    <button id="helperBtn">Get Access Info</button>
-  </form>
+  <div class="form-group">
+    <form id="helper">
+      <div class="field-group">
+        <label>Emby Server URL</label>
+        <input name="url" placeholder="https://example.com:8096" required>
+      </div>
+      <div class="field-group">
+        <label>Server Username (not Emby Connect)</label>
+        <input name="user" placeholder="Your Emby server username" required>
+      </div>
+      <div class="field-group">
+        <label>Server Password (not Emby Connect)</label>
+        <input name="pass" type="password" placeholder="Your Emby server password" required>
+      </div>
+      <button id="helperBtn">Get Access Info</button>
+    </form>
+  </div>
 
-  <div id="helperOut" class="out" style="display:none">
+  <div id="helperOut" class="out form-output" style="display:none">
     <small>User ID</small><pre id="uid"></pre>
     <small style="margin-top:.6rem;display:block">Access Token</small><pre id="tok"></pre>
   </div>
 
   <!--  2· Configure  -->
+  <hr class="section-divider">
   <h2>2 · Generate Install Link</h2>
   <form id="cfg">
-    <label>Emby Server URL</label>
-    <input name="serverUrl" required>
-    <label>User ID</label>
-    <input name="userId" required>
-    <label>Access Token / API Key</label>
-    <input name="accessToken" required>
+    <div class="form-group">
+      <div class="field-group">
+        <label>Emby Server URL</label>
+        <input name="serverUrl" required>
+      </div>
+      <div class="field-group">
+        <label>User ID</label>
+        <input name="userId" required>
+      </div>
+      <div class="field-group">
+        <label>Access Token / API Key</label>
+        <input name="accessToken" required>
+      </div>
+    </div>
     
     <!-- New configuration options -->
-    <h3 style="margin-top:1.5rem;margin-bottom:0.75rem;font-size:1rem;font-weight:600;color:var(--text-dim)">Advanced Options</h3>
-    
-    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
-      <input type="checkbox" name="showServerName" style="width:auto;margin:0;cursor:pointer;">
-      <span>Show server name in addon name</span>
-    </label>
-    
-    <label>Stream Name (displayed in Stremio)</label>
-    <input name="streamName" placeholder="Emby" value="Emby">
-    <small style="margin-top:-0.5rem;display:block;">Custom name for streams (default: "Emby")</small>
-    
-    <label style="margin-top:1rem;margin-bottom:0.5rem;">Hide Stream Types (check types to hide from results)</label>
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:0.5rem;margin-bottom:0.5rem;">
-      <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;">
-        <input type="checkbox" name="hideStreamTypes" value="4K" style="width:auto;margin:0;cursor:pointer;">
-        <span>4K</span>
-      </label>
-      <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;">
-        <input type="checkbox" name="hideStreamTypes" value="DV" style="width:auto;margin:0;cursor:pointer;">
-        <span>Dolby Vision (DV)</span>
-      </label>
-      <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;">
-        <input type="checkbox" name="hideStreamTypes" value="HDR" style="width:auto;margin:0;cursor:pointer;">
-        <span>All HDR</span>
-      </label>
-      <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;">
-        <input type="checkbox" name="hideStreamTypes" value="HDR10" style="width:auto;margin:0;cursor:pointer;">
-        <span>HDR10</span>
-      </label>
-      <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;">
-        <input type="checkbox" name="hideStreamTypes" value="HDR10+" style="width:auto;margin:0;cursor:pointer;">
-        <span>HDR10+</span>
-      </label>
-      <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;">
-        <input type="checkbox" name="hideStreamTypes" value="HLG" style="width:auto;margin:0;cursor:pointer;">
-        <span>HLG</span>
-      </label>
+    <div class="advanced-group">
+      <h3>Advanced Options</h3>
+      
+      <div class="field-group">
+        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;margin:0;">
+          <input type="checkbox" name="showServerName">
+          <span>Show server name in addon name</span>
+        </label>
+        <small>Better to keep it unchecked for privacy unless you are installing multiple instances of this addon</small>
+      </div>
+      
+      <div class="field-group">
+        <label class="description-after">Stream Name (displayed in Stremio)</label>
+        <small>Custom name for streams (default: "Emby")</small>
+        <input name="streamName" placeholder="Emby" value="Emby">
+      </div>
+      
+      <div class="field-group">
+        <label class="description-after">Hide Stream Types</label>
+        <small>Check types to hide from results</small>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:0.6rem;margin-top:0.5rem;">
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;margin:0;">
+            <input type="checkbox" name="hideStreamTypes" value="4K">
+            <span>4K</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;margin:0;">
+            <input type="checkbox" name="hideStreamTypes" value="1080p">
+            <span>1080p</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;margin:0;">
+            <input type="checkbox" name="hideStreamTypes" value="DV">
+            <span>Dolby Vision (DV)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;margin:0;">
+            <input type="checkbox" name="hideStreamTypes" value="HDR">
+            <span>All HDR</span>
+          </label>
+        </div>
+      </div>
     </div>
-    <small style="margin-top:-0.5rem;display:block;">Select stream types to hide from results</small>
     
-    <button id="cfgBtn">Create & Install Addon</button>
+    <button id="cfgBtn" style="margin-top:1rem">Create & Install Addon</button>
   </form>
 
-  <div id="cfgOut" class="out"></div>
+  <div id="cfgOut" class="out form-output"></div>
 
 </div>
 
