@@ -123,7 +123,8 @@ app.get("/:cfg/manifest.json", (req, res) => {
     cfg = decodeCfg(cfgString);    
   } catch (err) {
     console.error("[ERROR] Error decoding cfg in manifest route:", err.message);
-    console.error("[ERROR] Problematic cfgString was:", cfgString);
+    // SECURITY: Do not log cfgString as it contains sensitive user credentials (accessToken, userId, serverUrl)
+    console.error("[ERROR] Failed to decode config (cfgString length:", cfgString?.length || 0, ")");
     return res.status(400).json({ err: "Bad config in URL", details: err.message });
   }
 
@@ -204,7 +205,11 @@ app.get("/:cfg/stream/:type/:id.json", async (req, res) => {
 
     res.json({ streams });
   } catch (e) {
-    console.error("Stream handler error:", e);
+    // SECURITY: Only log error message and stack, not the full error object which might contain config
+    console.error("Stream handler error:", e?.message || String(e));
+    if (e?.stack && process.env.NODE_ENV === 'development') {
+      console.error("Stack trace:", e.stack);
+    }
     res.json({ streams: [] });
   }
 });
