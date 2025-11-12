@@ -231,7 +231,7 @@ iframe[id*="kofi-wo-container"] {
       </div>
       <div class="field-group">
         <label>Server Password</label>
-        <input name="pass" type="password" placeholder="Your server password" required>
+        <input name="pass" type="password" placeholder="Your server password">
       </div>
       <button id="helperBtn">Get Access Info</button>
     </form>
@@ -392,41 +392,120 @@ if (jellyfinCardEl) {
 syncServerType("emby");
 
 /*── 2 · Helper ──*/
+// Emby authentication function
+async function authenticateEmby(url, user, pass) {
+  try {
+    const res = await fetch(`${url}/Users/AuthenticateByName`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Emby-Authorization":
+          'MediaBrowser Client="StreamBridge", Device="WebHelper", DeviceId="webhelper", Version="1.2.0"'
+      },
+      body: JSON.stringify({ Username: user, Pw: pass || "" })
+    });
+    
+    if (!res.ok) {
+      let errorMessage = "Authentication failed";
+      try {
+        const errorData = await res.json();
+        errorMessage = errorData.Message || errorData.message || `HTTP ${res.status}: ${res.statusText}`;
+      } catch {
+        errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+      }
+      throw new Error(errorMessage);
+    }
+    
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    // Re-throw with better context if it's not already our error
+    if (err.message && !err.message.includes("HTTP") && !err.message.includes("Authentication")) {
+      throw new Error(`Network error: ${err.message}`);
+    }
+    throw err;
+  }
+}
+
+// Jellyfin authentication function
+async function authenticateJellyfin(url, user, pass) {
+  try {
+    const res = await fetch(`${url}/Users/authenticatebyname`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization":
+          'MediaBrowser Client="StreamBridge", Device="WebHelper", DeviceId="webhelper", Version="1.2.0"'
+      },
+      body: JSON.stringify({ Username: user, Pw: pass || "" })
+    });
+    
+    if (!res.ok) {
+      let errorMessage = "Authentication failed";
+      try {
+        const errorData = await res.json();
+        errorMessage = errorData.Message || errorData.message || `HTTP ${res.status}: ${res.statusText}`;
+      } catch {
+        errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+      }
+      throw new Error(errorMessage);
+    }
+    
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    // Re-throw with better context if it's not already our error
+    if (err.message && !err.message.includes("HTTP") && !err.message.includes("Authentication")) {
+      throw new Error(`Network error: ${err.message}`);
+    }
+    throw err;
+  }
+}
+
 $("#helper").addEventListener("submit", async e=>{
   e.preventDefault();
   const f=new FormData(e.target),
-        url=f.get("url").replace(/\/+$/,""),
+        urlRaw=f.get("url"),
         user=f.get("user"),
         pass=f.get("pass");
   const btn=$("#helperBtn");
   btn.disabled=true;btn.textContent="Fetching…";
 
+  // Validate and normalize URL
+  if(!urlRaw || !urlRaw.trim()) {
+    alert("❌ Please enter a server URL.");
+    btn.disabled=false;btn.textContent="Get Access Info";
+    return;
+  }
+  
+  const url = urlRaw.trim().replace(/\/+$/,"");
+  
   // Ensure HTTPS
   if(!url.startsWith("https://")) {
     alert("❌ Please use HTTPS URLs only. Your server must be accessible via HTTPS for this addon to work.");
     btn.disabled=false;btn.textContent="Get Access Info";
     return;
   }
+  
+  // Basic URL format validation
+  try {
+    new URL(url);
+  } catch {
+    alert("❌ Please enter a valid URL (e.g., https://example.com:8096)");
+    btn.disabled=false;btn.textContent="Get Access Info";
+    return;
+  }
 
-  // Get server type from selected server type (not from form, since we removed it)
+  // Get server type from selected server type
   const selectedServerTypeEl = $("#selectedServerType");
   const serverType = selectedServerTypeEl ? selectedServerTypeEl.value : "emby";
-  
-  // Use appropriate authorization header based on server type
-  const authHeader = serverType === "jellyfin" ? "X-MediaBrowser-Authorization" : "X-Emby-Authorization";
 
   try{
-    const res=await fetch(`${url}/Users/AuthenticateByName`,{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        [authHeader]:
-          'MediaBrowser Client="StreamBridge", Device="WebHelper", DeviceId="webhelper", Version="1.2.0"'
-      },
-      body:JSON.stringify({Username:user,Pw:pass})
-    });
-    const data=await res.json();
-    if(!res.ok) throw Error(data.Message||"Auth failed");
+    // Call appropriate authentication function based on server type
+    const data = serverType === "jellyfin" 
+      ? await authenticateJellyfin(url, user, pass)
+      : await authenticateEmby(url, user, pass);
 
     $("#uid").textContent = data?.User?.Id || "";
     $("#tok").textContent = data?.AccessToken || "";
@@ -453,17 +532,34 @@ $("#cfg").addEventListener("submit",e=>{
   const formData = new FormData(e.target);
   const cfg = {};
   
-  // Required fields
-  // Get server type from selected server type or hidden input
+  // Get server type from selected server type (source of truth) or fallback to hidden input
   const selectedServerTypeEl = $("#selectedServerType");
-  cfg.serverType = (selectedServerTypeEl ? selectedServerTypeEl.value : null) || formData.get("serverType") || "emby"; // Default to emby for backward compatibility
-  cfg.serverUrl = formData.get("serverUrl");
+  const serverTypeFromSelection = selectedServerTypeEl ? selectedServerTypeEl.value : null;
+  const serverTypeFromForm = formData.get("serverType");
+  cfg.serverType = serverTypeFromSelection || serverTypeFromForm || "emby";
+  
+  // Validate server type is either 'emby' or 'jellyfin'
+  if (cfg.serverType !== "emby" && cfg.serverType !== "jellyfin") {
+    cfg.serverType = "emby"; // Default to emby if invalid
+  }
+  
+  // Required fields
+  const serverUrlRaw = formData.get("serverUrl");
+  cfg.serverUrl = serverUrlRaw ? serverUrlRaw.trim().replace(/\/+$/, "") : "";
   cfg.userId = formData.get("userId");
   cfg.accessToken = formData.get("accessToken");
   
   // Validate required fields
   if (!cfg.serverUrl || !cfg.userId || !cfg.accessToken) {
     alert("❌ Please fill in all required fields (Server URL, User ID, and Access Token).");
+    return;
+  }
+  
+  // Validate URL format (HTTPS not required in Step 3)
+  try {
+    new URL(cfg.serverUrl);
+  } catch {
+    alert("❌ Please enter a valid URL (e.g., https://example.com:8096 or http://localhost:8096)");
     return;
   }
   
@@ -484,19 +580,6 @@ $("#cfg").addEventListener("submit",e=>{
   if (hideStreamTypes.length > 0) {
     cfg.hideStreamTypes = hideStreamTypes;
   }
-  
-  const serverUrl = cfg.serverUrl;
-
-  // Ensure HTTPS in config form
-  if(!serverUrl.startsWith("https://")) {
-    alert("❌ Please use HTTPS URLs only. Your server must be accessible via HTTPS for this addon to work.");
-    return;
-  }
-  
-  // Validate server type is either 'emby' or 'jellyfin'
-  if (cfg.serverType !== "emby" && cfg.serverType !== "jellyfin") {
-    cfg.serverType = "emby"; // Default to emby if invalid
-  }
 
   const cfg64=btoa(unescape(encodeURIComponent(JSON.stringify(cfg))))
                 .replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
@@ -504,12 +587,23 @@ $("#cfg").addEventListener("submit",e=>{
   const httpURL    = `${location.origin}/${cfg64}/manifest.json`;
   const stremioURL = `stremio://${location.host}/${cfg64}/manifest.json`;
 
+  // Create output HTML (URLs are safe - base64 encoded, no XSS risk)
+  const urlDisplay = document.createElement('pre');
+  urlDisplay.textContent = httpURL;
+  
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'copy-btn';
+  copyBtn.textContent = 'Copy URL';
+  copyBtn.onclick = () => {
+    navigator.clipboard.writeText(httpURL).then(() => toast('Copied URL'));
+  };
+
   $("#cfgOut").innerHTML = `
     <p><a href="${stremioURL}">➜ Install directly in Stremio</a></p>
     <small>Or copy this URL and add it via <em>Add-ons → Install via URL</em>:</small>
-    <pre>${httpURL}</pre>
-    <button class="copy-btn" onclick="navigator.clipboard.writeText('${httpURL}').then(()=>toast('Copied URL'))">Copy URL</button>
   `;
+  $("#cfgOut").appendChild(urlDisplay);
+  $("#cfgOut").appendChild(copyBtn);
 });
 </script>
 <script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>

@@ -26,10 +26,10 @@ app.use(express.static(path.join(__dirname, "public")));
 function baseManifest () {
   return {
     id      : "org.streambridge.embyresolver",
-    version : "1.2.0",
+    version : "1.2.1",
     name    : "StreamBridge: Emby/Jellyfin to Stremio",
     description:
-      "Stream media from your personal or shared Emby or Jellyfin server using IMDb/TMDB IDs.",
+      "Stream media from your Emby or Jellyfin server using IMDb/TMDB/Tvdb/Anidb IDs.",
     catalogs : [],
     resources: [
       { name: "stream",
