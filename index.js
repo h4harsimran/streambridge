@@ -1,5 +1,5 @@
 /**
- * StreamBridge – Emby/Jellyfin → Stremio addon
+ * StreamBridge – Emby → Stremio addon
  * Full Express server with parameterised manifest + stream routes
  * User data is embedded in the URL path as a base64-url string.
  */
@@ -8,7 +8,8 @@ const express      = require("express");
 const path         = require("path");
 const cors         = require("cors");
 const embyClient   = require("./lib/embyClient");
-const jellyfinClient = require("./lib/jellyfinClient");
+// JELLYFIN: Jellyfin client import commented out for future Jellyfin support
+// const jellyfinClient = require("./lib/jellyfinClient");
 require("dotenv").config();
 
 const PORT = process.env.PORT || 7000;
@@ -27,9 +28,9 @@ function baseManifest () {
   return {
     id      : "org.streambridge.embyresolver",
     version : "1.2.1",
-    name    : "StreamBridge: Emby/Jellyfin to Stremio",
+    name    : "StreamBridge: Emby to Stremio",
     description:
-      "Stream media from your Emby or Jellyfin server using IMDb/TMDB/Tvdb/Anidb IDs.",
+      "Stream media from your Emby server using IMDb/TMDB/Tvdb/Anidb IDs.",
     catalogs : [],
     resources: [
       { name: "stream",
@@ -39,7 +40,7 @@ function baseManifest () {
     types: ["movie", "series"],
     behaviorHints: { configurable: true, configurationRequired: true },
     config: [
-      { key: "serverUrl",   type: "text", title: "Server URL (Emby or Jellyfin)",  required: true },
+      { key: "serverUrl",   type: "text", title: "Server URL (Emby)",  required: true },
       { key: "userId",      type: "text", title: "User ID",     required: true },
       { key: "accessToken", type: "text", title: "Access Token", required: true }
     ]
@@ -163,8 +164,10 @@ app.get("/:cfg/stream/:type/:id.json", async (req, res) => {
     return res.json({ streams: [] });
 
   try {
+    // JELLYFIN: Always use Emby client - Jellyfin support commented out for future
     // Select the appropriate client based on serverType (defaults to 'emby' for backward compatibility)
-    const client = cfg.serverType === 'jellyfin' ? jellyfinClient : embyClient;
+    // const client = cfg.serverType === 'jellyfin' ? jellyfinClient : embyClient;
+    const client = embyClient;
     const raw = await client.getStream(id, cfg);
     
     // Get custom stream name from config (defaults based on server type)

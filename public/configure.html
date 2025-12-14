@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>StreamBridge • Emby/Jellyfin ↔ Stremio Setup</title>
+<title>StreamBridge • Emby ↔ Stremio Setup</title>
 
 <!-- ----------  Design tokens  ---------- -->
 <style>
@@ -108,7 +108,7 @@ pre{
 }
 .toast.show{opacity:1}
 
-/* Server Type Selection Cards */
+/* JELLYFIN: Server Type Selection Cards - Commented out for future Jellyfin support
 .server-selection {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -167,6 +167,7 @@ pre{
     grid-template-columns: 1fr;
   }
 }
+*/
 
 iframe.floatingchat-container,
 iframe[id*="kofi-wo-container"] {
@@ -185,7 +186,7 @@ iframe[id*="kofi-wo-container"] {
 <div class="panel">
   <h1>StreamBridge Setup</h1>
   <p style="text-align:center;margin-top:0.5rem;font-size:.8rem;color:var(--text-dim)">
-    Stream from your Emby or Jellyfin server to Stremio<br>
+    Stream from your Emby server to Stremio<br>
     Need help? See <a href="https://github.com/h4harsimran/streambridge" target="_blank">docs on GitHub</a>.
   </p>
   
@@ -196,29 +197,14 @@ iframe[id*="kofi-wo-container"] {
       <strong style="color:#fbbf24;">Important: HTTPS Required</strong>
     </div>
     <p style="margin:0;font-size:0.9rem;color:var(--text-dim);line-height:1.4;">
-      This addon only works with Emby or Jellyfin servers accessible via <strong>HTTPS</strong>. 
+      This addon only works with Emby servers accessible via <strong>HTTPS</strong>. 
       HTTP and localhost addresses are not supported. Make sure your server is accessible 
       through a secure HTTPS connection.
     </p>
   </div>
 
-  <!--  1· Server Type Selection  -->
-  <h2>1 · Select Server Type</h2>
-  <div style="margin-bottom:1.5rem;">
-    <div class="server-selection">
-      <div class="server-card emby" data-server-type="emby" id="serverCardEmby">
-        <div class="server-card-name">Emby</div>
-      </div>
-      <div class="server-card jellyfin" data-server-type="jellyfin" id="serverCardJellyfin">
-        <div class="server-card-name">Jellyfin</div>
-      </div>
-    </div>
-    <!-- Hidden input to store selected server type -->
-    <input type="hidden" id="selectedServerType" value="emby">
-  </div>
-
-  <!--  2· Helper  -->
-  <h2>2 · Fetch User ID & Token</h2>
+  <!--  1· Helper  -->
+  <h2>1 · Fetch User ID & Token</h2>
   <div class="form-group">
     <form id="helper">
       <div class="field-group">
@@ -242,9 +228,9 @@ iframe[id*="kofi-wo-container"] {
     <small style="margin-top:.6rem;display:block">Access Token</small><pre id="tok"></pre>
   </div>
 
-  <!--  3· Configure  -->
+  <!--  2· Configure  -->
   <hr class="section-divider">
-  <h2>3 · Generate Install Link</h2>
+  <h2>2 · Generate Install Link</h2>
   <form id="cfg">
     <div class="form-group">
       <!-- Hidden input to store server type from selection -->
@@ -323,37 +309,37 @@ const toast = msg =>{
   setTimeout(()=>t.classList.remove("show"),2200);
 };
 
-// Function to sync server type throughout the form
+// Function to sync server type throughout the form (defaults to Emby)
 function syncServerType(serverType) {
-  const selectedServerType = $("#selectedServerType");
+  // Always default to Emby
+  const serverTypeToUse = "emby";
   const cfgServerType = $("#cfgServerType");
   const streamNameInput = $("#streamNameInput");
   const streamNameHint = $("#streamNameHint");
-  const embyCard = $("#serverCardEmby");
-  const jellyfinCard = $("#serverCardJellyfin");
   
-  // Update hidden inputs
-  if (selectedServerType) {
-    selectedServerType.value = serverType || "emby";
-  }
+  // JELLYFIN: Card selection logic commented out for future Jellyfin support
+  // const embyCard = $("#serverCardEmby");
+  // const jellyfinCard = $("#serverCardJellyfin");
+  
+  // Update hidden input
   if (cfgServerType) {
-    cfgServerType.value = serverType || "emby";
+    cfgServerType.value = serverTypeToUse;
   }
   
-  // Update card selection visual state
-  if (embyCard && jellyfinCard) {
-    if (serverType === "jellyfin") {
-      embyCard.classList.remove("selected");
-      jellyfinCard.classList.add("selected");
-    } else {
-      embyCard.classList.add("selected");
-      jellyfinCard.classList.remove("selected");
-    }
-  }
+  // JELLYFIN: Card selection visual state update commented out
+  // if (embyCard && jellyfinCard) {
+  //   if (serverType === "jellyfin") {
+  //     embyCard.classList.remove("selected");
+  //     jellyfinCard.classList.add("selected");
+  //   } else {
+  //     embyCard.classList.add("selected");
+  //     jellyfinCard.classList.remove("selected");
+  //   }
+  // }
   
-  // Update stream name placeholder and hint based on server type
+  // Update stream name placeholder and hint (always Emby)
   if (streamNameInput && streamNameHint) {
-    const defaultName = serverType === "jellyfin" ? "Jellyfin" : "Emby";
+    const defaultName = "Emby";
     const currentValue = streamNameInput.value.trim();
     
     // Update placeholder
@@ -362,7 +348,7 @@ function syncServerType(serverType) {
     // Only auto-update the value if it's empty or matches the old default
     // Don't overwrite custom values
     if (!currentValue || currentValue === "Emby" || currentValue === "Jellyfin") {
-      // Only clear if it was the opposite default (e.g., had "Emby" but switched to Jellyfin)
+      // Only clear if it was the opposite default
       // If empty, leave it empty so user can see the placeholder
       if (currentValue && currentValue !== defaultName) {
         streamNameInput.value = "";
@@ -373,20 +359,20 @@ function syncServerType(serverType) {
   }
 }
 
-// Server card selection handlers
-const embyCardEl = $("#serverCardEmby");
-const jellyfinCardEl = $("#serverCardJellyfin");
-
-if (embyCardEl) {
-  embyCardEl.addEventListener("click", ()=>{
-    syncServerType("emby");
-  });
-}
-if (jellyfinCardEl) {
-  jellyfinCardEl.addEventListener("click", ()=>{
-    syncServerType("jellyfin");
-  });
-}
+// JELLYFIN: Server card selection handlers commented out for future Jellyfin support
+// const embyCardEl = $("#serverCardEmby");
+// const jellyfinCardEl = $("#serverCardJellyfin");
+// 
+// if (embyCardEl) {
+//   embyCardEl.addEventListener("click", ()=>{
+//     syncServerType("emby");
+//   });
+// }
+// if (jellyfinCardEl) {
+//   jellyfinCardEl.addEventListener("click", ()=>{
+//     syncServerType("jellyfin");
+//   });
+// }
 
 // Initialize server type on page load (default to Emby)
 syncServerType("emby");
@@ -427,41 +413,41 @@ async function authenticateEmby(url, user, pass) {
   }
 }
 
-// Jellyfin authentication function
-async function authenticateJellyfin(url, user, pass) {
-  try {
-    const res = await fetch(`${url}/Users/authenticatebyname`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "Authorization":
-          'MediaBrowser Client="StreamBridge", Device="WebHelper", DeviceId="webhelper", Version="1.2.0"'
-      },
-      body: JSON.stringify({ Username: user, Pw: pass || "" })
-    });
-    
-    if (!res.ok) {
-      let errorMessage = "Authentication failed";
-      try {
-        const errorData = await res.json();
-        errorMessage = errorData.Message || errorData.message || `HTTP ${res.status}: ${res.statusText}`;
-      } catch {
-        errorMessage = `HTTP ${res.status}: ${res.statusText}`;
-      }
-      throw new Error(errorMessage);
-    }
-    
-    const data = await res.json();
-    return data;
-  } catch (err) {
-    // Re-throw with better context if it's not already our error
-    if (err.message && !err.message.includes("HTTP") && !err.message.includes("Authentication")) {
-      throw new Error(`Network error: ${err.message}`);
-    }
-    throw err;
-  }
-}
+// JELLYFIN: Jellyfin authentication function - Commented out for future Jellyfin support
+// async function authenticateJellyfin(url, user, pass) {
+//   try {
+//     const res = await fetch(`${url}/Users/authenticatebyname`, {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//         "Accept": "application/json",
+//         "Authorization":
+//           'MediaBrowser Client="StreamBridge", Device="WebHelper", DeviceId="webhelper", Version="1.2.0"'
+//       },
+//       body: JSON.stringify({ Username: user, Pw: pass || "" })
+//     });
+//     
+//     if (!res.ok) {
+//       let errorMessage = "Authentication failed";
+//       try {
+//         const errorData = await res.json();
+//         errorMessage = errorData.Message || errorData.message || `HTTP ${res.status}: ${res.statusText}`;
+//       } catch {
+//         errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+//       }
+//       throw new Error(errorMessage);
+//     }
+//     
+//     const data = await res.json();
+//     return data;
+//   } catch (err) {
+//     // Re-throw with better context if it's not already our error
+//     if (err.message && !err.message.includes("HTTP") && !err.message.includes("Authentication")) {
+//       throw new Error(`Network error: ${err.message}`);
+//     }
+//     throw err;
+//   }
+// }
 
 $("#helper").addEventListener("submit", async e=>{
   e.preventDefault();
@@ -497,15 +483,15 @@ $("#helper").addEventListener("submit", async e=>{
     return;
   }
 
-  // Get server type from selected server type
-  const selectedServerTypeEl = $("#selectedServerType");
-  const serverType = selectedServerTypeEl ? selectedServerTypeEl.value : "emby";
+  // Always use Emby (Jellyfin support commented out for future)
+  const serverType = "emby";
 
   try{
-    // Call appropriate authentication function based on server type
-    const data = serverType === "jellyfin" 
-      ? await authenticateJellyfin(url, user, pass)
-      : await authenticateEmby(url, user, pass);
+    // JELLYFIN: Always use Emby authentication - Jellyfin support commented out
+    // const data = serverType === "jellyfin" 
+    //   ? await authenticateJellyfin(url, user, pass)
+    //   : await authenticateEmby(url, user, pass);
+    const data = await authenticateEmby(url, user, pass);
 
     $("#uid").textContent = data?.User?.Id || "";
     $("#tok").textContent = data?.AccessToken || "";
@@ -532,16 +518,19 @@ $("#cfg").addEventListener("submit",e=>{
   const formData = new FormData(e.target);
   const cfg = {};
   
-  // Get server type from selected server type (source of truth) or fallback to hidden input
-  const selectedServerTypeEl = $("#selectedServerType");
-  const serverTypeFromSelection = selectedServerTypeEl ? selectedServerTypeEl.value : null;
+  // Always default to Emby (Jellyfin support commented out for future)
+  // JELLYFIN: Server type selection logic commented out
+  // const selectedServerTypeEl = $("#selectedServerType");
+  // const serverTypeFromSelection = selectedServerTypeEl ? selectedServerTypeEl.value : null;
   const serverTypeFromForm = formData.get("serverType");
-  cfg.serverType = serverTypeFromSelection || serverTypeFromForm || "emby";
+  cfg.serverType = serverTypeFromForm || "emby";
   
+  // JELLYFIN: Validation commented out - always use Emby
   // Validate server type is either 'emby' or 'jellyfin'
-  if (cfg.serverType !== "emby" && cfg.serverType !== "jellyfin") {
-    cfg.serverType = "emby"; // Default to emby if invalid
-  }
+  // if (cfg.serverType !== "emby" && cfg.serverType !== "jellyfin") {
+  //   cfg.serverType = "emby"; // Default to emby if invalid
+  // }
+  cfg.serverType = "emby"; // Always use Emby
   
   // Required fields
   const serverUrlRaw = formData.get("serverUrl");
