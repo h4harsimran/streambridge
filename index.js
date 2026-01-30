@@ -7,7 +7,10 @@
 const express      = require("express");
 const path         = require("path");
 const cors         = require("cors");
+const rateLimit    = require("express-rate-limit");
+const axios        = require("axios");
 const embyClient   = require("./lib/embyClient");
+const ssrfGuard    = require("./lib/ssrfGuard");
 // JELLYFIN: Jellyfin client import commented out for future Jellyfin support
 // const jellyfinClient = require("./lib/jellyfinClient");
 require("dotenv").config();
@@ -15,11 +18,78 @@ require("dotenv").config();
 const PORT = process.env.PORT || 7000;
 const app  = express();
 
-// ──────────────────────────────────────────────────────────────────────────
-// Global middleware & static assets
-// ──────────────────────────────────────────────────────────────────────────
 app.use(cors());
 app.use(express.static(path.join(__dirname, "public")));
+
+const embyAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { err: "Too many attempts. Try again later." },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+app.use(express.json({ limit: "2kb" }));
+
+app.post("/api/get-emby-tokens", embyAuthLimiter, async (req, res) => {
+  const serverUrl = typeof req.body?.serverUrl === "string" ? req.body.serverUrl.trim() : "";
+  const username  = typeof req.body?.username === "string" ? req.body.username : "";
+  const password  = typeof req.body?.password === "string" ? req.body.password : "";
+
+  if (!serverUrl || !username) {
+    return res.status(400).json({ err: "serverUrl and username are required" });
+  }
+
+  const normalizedUrl = serverUrl.replace(/\/+$/, "");
+  if (!normalizedUrl.startsWith("http://") && !normalizedUrl.startsWith("https://")) {
+    return res.status(400).json({ err: "URL must start with http:// or https://" });
+  }
+
+  try {
+    await ssrfGuard.assertPublicHost(normalizedUrl);
+  } catch (e) {
+    const msg = e?.message || "Invalid or disallowed server URL";
+    return res.status(400).json({ err: msg });
+  }
+
+  const authUrl = `${normalizedUrl}/Users/AuthenticateByName`;
+  try {
+    const ax = await axios({
+      method: "POST",
+      url: authUrl,
+      headers: {
+        "Content-Type": "application/json",
+        "X-Emby-Authorization": 'MediaBrowser Client="StreamBridge", Device="WebHelper", DeviceId="webhelper", Version="1.2.0"'
+      },
+      data: { Username: username, Pw: password || "" },
+      timeout: 15000,
+      validateStatus: () => true
+    });
+
+    if (ax.status !== 200) {
+      const msg = ax.data?.Message || ax.data?.message || `HTTP ${ax.status}`;
+      return res.status(400).json({ err: msg });
+    }
+
+    const data = ax.data;
+    const userId = data?.User?.Id;
+    const accessToken = data?.AccessToken;
+    const serverId = data?.ServerId;
+
+    if (!userId || !accessToken) {
+      return res.status(502).json({ err: "Invalid response from server" });
+    }
+
+    return res.json({
+      Id: userId,
+      AccessToken: accessToken,
+      ServerId: serverId != null ? serverId : undefined
+    });
+  } catch (e) {
+    const msg = e?.response?.data?.Message || e?.response?.data?.message || e?.code || e?.message || "Request failed";
+    return res.status(502).json({ err: String(msg) });
+  }
+});
 
 // ──────────────────────────────────────────────────────────────────────────
 // Helper: build a naked manifest (no user-specific data yet)

@@ -190,16 +190,9 @@ iframe[id*="kofi-wo-container"] {
     Need help? See <a href="https://github.com/h4harsimran/streambridge" target="_blank">docs on GitHub</a>.
   </p>
   
-  <!-- HTTPS Warning -->
   <div style="background:#1e293b;border:1px solid #475569;border-radius:8px;padding:1rem;margin-bottom:1.5rem;">
-    <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
-      <span style="color:#fbbf24;font-size:1.2rem;">⚠️</span>
-      <strong style="color:#fbbf24;">Important: HTTPS Required</strong>
-    </div>
     <p style="margin:0;font-size:0.9rem;color:var(--text-dim);line-height:1.4;">
-      This addon only works with Emby servers accessible via <strong>HTTPS</strong>. 
-      HTTP and localhost addresses are not supported. Make sure your server is accessible 
-      through a secure HTTPS connection.
+      Use <strong>http</strong> or <strong>https</strong> for your Emby server URL. Credentials are validated via our server to avoid mixed-content issues.
     </p>
   </div>
 
@@ -209,7 +202,7 @@ iframe[id*="kofi-wo-container"] {
     <form id="helper">
       <div class="field-group">
         <label>Server URL</label>
-        <input name="url" placeholder="https://example.com:8096" required>
+        <input name="url" placeholder="http://example.com:8096 or https://..." required>
       </div>
       <div class="field-group">
         <label>Server Username</label>
@@ -378,39 +371,25 @@ function syncServerType(serverType) {
 syncServerType("emby");
 
 /*── 2 · Helper ──*/
-// Emby authentication function
-async function authenticateEmby(url, user, pass) {
-  try {
-    const res = await fetch(`${url}/Users/AuthenticateByName`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Emby-Authorization":
-          'MediaBrowser Client="StreamBridge", Device="WebHelper", DeviceId="webhelper", Version="1.2.0"'
-      },
-      body: JSON.stringify({ Username: user, Pw: pass || "" })
-    });
-    
-    if (!res.ok) {
-      let errorMessage = "Authentication failed";
-      try {
-        const errorData = await res.json();
-        errorMessage = errorData.Message || errorData.message || `HTTP ${res.status}: ${res.statusText}`;
-      } catch {
-        errorMessage = `HTTP ${res.status}: ${res.statusText}`;
-      }
-      throw new Error(errorMessage);
-    }
-    
-    const data = await res.json();
-    return data;
-  } catch (err) {
-    // Re-throw with better context if it's not already our error
-    if (err.message && !err.message.includes("HTTP") && !err.message.includes("Authentication")) {
-      throw new Error(`Network error: ${err.message}`);
-    }
-    throw err;
+async function authenticateEmby(serverUrl, username, password) {
+  const res = await fetch("/api/get-emby-tokens", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      serverUrl: serverUrl,
+      username: username,
+      password: password || ""
+    })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.err || `HTTP ${res.status}`);
   }
+  return {
+    User: { Id: data.Id },
+    AccessToken: data.AccessToken,
+    ServerId: data.ServerId
+  };
 }
 
 // JELLYFIN: Jellyfin authentication function - Commented out for future Jellyfin support
@@ -466,14 +445,12 @@ $("#helper").addEventListener("submit", async e=>{
   }
   
   const url = urlRaw.trim().replace(/\/+$/,"");
-  
-  // Ensure HTTPS
-  if(!url.startsWith("https://")) {
-    alert("❌ Please use HTTPS URLs only. Your server must be accessible via HTTPS for this addon to work.");
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    alert("❌ URL must start with http:// or https://");
     btn.disabled=false;btn.textContent="Get Access Info";
     return;
   }
-  
+
   // Basic URL format validation
   try {
     new URL(url);
