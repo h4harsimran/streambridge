@@ -10,7 +10,6 @@ const cors         = require("cors");
 const rateLimit    = require("express-rate-limit");
 const axios        = require("axios");
 const embyClient   = require("./lib/embyClient");
-const ssrfGuard    = require("./lib/ssrfGuard");
 // JELLYFIN: Jellyfin client import commented out for future Jellyfin support
 // const jellyfinClient = require("./lib/jellyfinClient");
 require("dotenv").config();
@@ -43,13 +42,6 @@ app.post("/api/get-emby-tokens", embyAuthLimiter, async (req, res) => {
   const normalizedUrl = serverUrl.replace(/\/+$/, "");
   if (!normalizedUrl.startsWith("http://") && !normalizedUrl.startsWith("https://")) {
     return res.status(400).json({ err: "URL must start with http:// or https://" });
-  }
-
-  try {
-    await ssrfGuard.assertPublicHost(normalizedUrl);
-  } catch (e) {
-    const msg = e?.message || "Invalid or disallowed server URL";
-    return res.status(400).json({ err: msg });
   }
 
   const authUrl = `${normalizedUrl}/Users/AuthenticateByName`;
