@@ -201,7 +201,7 @@ Yes! The configuration page allows you to filter out specific stream types (4K, 
 
 3. **Follow the prompts** and push with:
    ```bash
-   e
+   git push beamup main:master 
    ```
 
 4. **Your addon is live at**:
