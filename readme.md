@@ -65,8 +65,8 @@
 
 Before installing StreamBridge, ensure you have:
 
-- ✅ **HTTPS Server**: Your Emby server must be accessible via HTTPS (HTTP and localhost are not supported)
-- ✅ **Public Access**: Your server must be accessible from the internet (not just localhost)
+- ✅ **Server URL**: Your Emby server can now use either of **HTTP or HTTPS**. But HTTP works only in **Stremio apps** (tested with desktop, iOS, Android TV). HTTP does **not** work in the  **browser** because browsers block mixed content (HTTPS page connecting to HTTP). HTTPS urls  works in all stremio variants.
+- ✅ **Public Access**: Your server must be accessible from the internet (private/local IPs like localhost or 192.168.x.x does not work).
 - ✅ **Server Credentials**: Your server username and password (not Emby Connect credentials)
 
 ## 📦 Quick Install
@@ -74,12 +74,11 @@ Before installing StreamBridge, ensure you have:
 ### Option 1: Direct Install (Recommended)
 
 1. **Click the configure link**:
-   ```
-   https://39427cdac546-streambridge.baby-beamup.club/configure
-   ```
+
+   [https://39427cdac546-streambridge.baby-beamup.club/configure](https://39427cdac546-streambridge.baby-beamup.club/configure)
 
 2. **Configure your server**:
-   - Enter your **Server URL** (must be HTTPS)
+   - Enter your **Server URL** (You can use either of http or https now)
    - Enter your **Username** and **Password**
    - Click **Get Access Info**
    - Your **User ID** and **Access Token** will auto-fill
@@ -94,9 +93,9 @@ Before installing StreamBridge, ensure you have:
 1. **Open Stremio** and go to Addons
 
 2. **Install using the manifest link**:
-   ```
-   https://39427cdac546-streambridge.baby-beamup.club/manifest.json
-   ```
+
+   [https://39427cdac546-streambridge.baby-beamup.club/manifest.json](https://39427cdac546-streambridge.baby-beamup.club/manifest.json)
+
 
 3. **Configure the addon**:
    - Click the **Configure** button on the addon
@@ -128,11 +127,10 @@ Stremio Catalog Addon → StreamBridge → Your Emby Server → Direct Play
 
 **Common causes and solutions:**
 
-#### 1. Using HTTP instead of HTTPS
+#### 1. HTTP vs HTTPS
 
-- ❌ **Wrong**: `http://your-server.com:8096`
-- ✅ **Correct**: `https://your-server.com:8096`
-- **Why?** Modern browsers and Stremio require secure connections for security. HTTP connections are blocked by default.
+- **Stremio apps (desktop, iOS, Android TV):** Both **http** and **https** server URLs work. Use whichever your Emby server uses.
+- **Stremio in the browser:** Only **https** url works. Browsers block mixed content (an HTTPS page cannot connect to an HTTP server), so HTTP will not work there.
 
 #### 2. Using Server Credentials (Not Connect Credentials)
 
@@ -141,17 +139,17 @@ Stremio Catalog Addon → StreamBridge → Your Emby Server → Direct Play
 - **Where to get them?** Go to your server web interface → Users → Your username → Edit → Set a password if you haven't already
 - **Note:** These are the same credentials you use when logging into your server directly in a browser.
 
-#### 3. Using Localhost Addresses
+#### 3. Using Localhost or Private IPs
 
-- ❌ **Wrong**: `localhost:8096` or `127.0.0.1:8096`
-- ✅ **Correct**: Your public HTTPS URL (e.g., `https://your-domain.com:8096`)
-- **Why?** The addon runs on the internet and needs to reach your server from outside your network.
+- ❌ **Wrong**: `localhost:8096`, `127.0.0.1:8096`, or `192.168.1.5:8096`
+- ✅ **Correct**: Your public URL (e.g., `https://your-domain.com:8096` or `http://your-domain.com:8096`or `http://24.X.XX.X:XXXX`)
+- **Why?** The addon runs on the internet and only allows public IPs. Private/local addresses do not work.
 
 #### 4. Server Not Accessible from Internet
 
-- Make sure your server is accessible via HTTPS from outside your local network
-- **Setup needed:** Configure your router/firewall to forward HTTPS traffic to your server
-- **Alternative:** Use a reverse proxy (nginx, Caddy) or VPN solution to expose your server securely
+- Make sure your server is accessible (http or https) from outside your local network
+- **Setup needed:** Configure your router/firewall to forward traffic to your server
+- **Alternative:** Use a reverse proxy (nginx, Caddy) or VPN solution to expose your server
 
 ### Can I use this with multiple servers?
 
@@ -159,7 +157,7 @@ Yes! You can install the addon multiple times with different configurations to c
 
 ### Does this work with local servers?
 
-No, your server must be accessible via HTTPS from the internet. Localhost and local network addresses are not supported.
+No. Your server must be reachable from the internet with a **public** IP or hostname. Localhost and private network addresses (e.g. 192.168.x.x) do not work.
 
 ### What IDs are supported?
 
@@ -203,7 +201,7 @@ Yes! The configuration page allows you to filter out specific stream types (4K, 
 
 3. **Follow the prompts** and push with:
    ```bash
-   git push beamup main:master
+   e
    ```
 
 4. **Your addon is live at**:
