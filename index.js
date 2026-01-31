@@ -54,7 +54,7 @@ app.post("/api/get-emby-tokens", embyAuthLimiter, async (req, res) => {
         "X-Emby-Authorization": 'MediaBrowser Client="StreamBridge", Device="WebHelper", DeviceId="webhelper", Version="1.2.0"'
       },
       data: { Username: username, Pw: password || "" },
-      timeout: 15000,
+      timeout: 5000,
       validateStatus: () => true
     });
 
@@ -89,7 +89,7 @@ app.post("/api/get-emby-tokens", embyAuthLimiter, async (req, res) => {
 function baseManifest () {
   return {
     id      : "org.streambridge.embyresolver",
-    version : "1.2.1",
+    version : "1.2.2",
     name    : "StreamBridge: Emby to Stremio",
     description:
       "Stream media from your Emby server using IMDb/TMDB/Tvdb/Anidb IDs.",
