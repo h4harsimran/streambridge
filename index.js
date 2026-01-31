@@ -10,6 +10,7 @@ const cors         = require("cors");
 const rateLimit    = require("express-rate-limit");
 const axios        = require("axios");
 const embyClient   = require("./lib/embyClient");
+const { redactServerUrl } = require("./lib/redact");
 // JELLYFIN: Jellyfin client import commented out for future Jellyfin support
 // const jellyfinClient = require("./lib/jellyfinClient");
 require("dotenv").config();
@@ -36,11 +37,13 @@ app.post("/api/get-emby-tokens", embyAuthLimiter, async (req, res) => {
   const password  = typeof req.body?.password === "string" ? req.body.password : "";
 
   if (!serverUrl || !username) {
+    console.warn("Auth: missing serverUrl or username");
     return res.status(400).json({ err: "serverUrl and username are required" });
   }
 
   const normalizedUrl = serverUrl.replace(/\/+$/, "");
   if (!normalizedUrl.startsWith("http://") && !normalizedUrl.startsWith("https://")) {
+    console.warn("Auth: invalid URL scheme (must be http:// or https://)");
     return res.status(400).json({ err: "URL must start with http:// or https://" });
   }
 
@@ -60,6 +63,7 @@ app.post("/api/get-emby-tokens", embyAuthLimiter, async (req, res) => {
 
     if (ax.status !== 200) {
       const msg = ax.data?.Message || ax.data?.message || `HTTP ${ax.status}`;
+      console.warn("Auth failed:", redactServerUrl(normalizedUrl), "→", ax.status, msg);
       return res.status(400).json({ err: msg });
     }
 
@@ -69,6 +73,7 @@ app.post("/api/get-emby-tokens", embyAuthLimiter, async (req, res) => {
     const serverId = data?.ServerId;
 
     if (!userId || !accessToken) {
+      console.warn("Auth failed:", redactServerUrl(normalizedUrl), "→ invalid response (missing User.Id or AccessToken)");
       return res.status(502).json({ err: "Invalid response from server" });
     }
 
@@ -79,6 +84,8 @@ app.post("/api/get-emby-tokens", embyAuthLimiter, async (req, res) => {
     });
   } catch (e) {
     const msg = e?.response?.data?.Message || e?.response?.data?.message || e?.code || e?.message || "Request failed";
+    const code = e?.code || (e?.response?.status ? `HTTP ${e.response.status}` : "");
+    console.warn("Auth failed:", redactServerUrl(normalizedUrl), code ? "→" : "", code || "", msg);
     return res.status(502).json({ err: String(msg) });
   }
 });
