@@ -54,7 +54,7 @@ app.post("/api/get-emby-tokens", embyAuthLimiter, async (req, res) => {
       url: authUrl,
       headers: {
         "Content-Type": "application/json",
-        "X-Emby-Authorization": 'MediaBrowser Client="StreamBridge", Device="WebHelper", DeviceId="webhelper", Version="1.2.0"'
+        "X-Emby-Authorization": 'MediaBrowser Client="StreamBridge", Device="WebHelper", DeviceId="webhelper", Version="1.2.2"'
       },
       data: { Username: username, Pw: password || "" },
       timeout: 5000,
