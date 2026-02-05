@@ -265,7 +265,7 @@ app.get("/:cfg/stream/:type/:id.json", async (req, res) => {
           description: s.streamDescription || s.qualityTitle || "Direct Play", // Full detailed technical information
           url: s.directPlayUrl,
           behaviorHints: behaviorHints,
-          subtitles: s.subtitles || [] // Include subtitles if available
+          subtitles: (cfg.includeSubtitles === false) ? [] : (s.subtitles || []) // Include subtitles unless user opted out
         };
       });
     // Set cache based on whether streams were found

@@ -256,6 +256,14 @@ iframe[id*="kofi-wo-container"] {
       </div>
       
       <div class="field-group">
+        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;margin:0;">
+          <input type="checkbox" name="includeSubtitles" id="includeSubtitles" checked>
+          <span>Include subtitles from Emby</span>
+        </label>
+        <small>Uncheck to opt out of subtitles provided by your server</small>
+      </div>
+      
+      <div class="field-group">
         <label class="description-after">Hide Stream Types</label>
         <small>Check types to hide from results</small>
         <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:0.6rem;margin-top:0.5rem;">
@@ -540,6 +548,11 @@ $("#cfg").addEventListener("submit",e=>{
   const hideStreamTypes = formData.getAll("hideStreamTypes");
   if (hideStreamTypes.length > 0) {
     cfg.hideStreamTypes = hideStreamTypes;
+  }
+  
+  // includeSubtitles: only set when user opts out (unchecked). Omit when checked for backward compatibility (default = include).
+  if (formData.get("includeSubtitles") === null || formData.get("includeSubtitles") === undefined) {
+    cfg.includeSubtitles = false;
   }
 
   const cfg64=btoa(unescape(encodeURIComponent(JSON.stringify(cfg))))
