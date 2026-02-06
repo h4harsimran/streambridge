@@ -11,6 +11,7 @@ const rateLimit    = require("express-rate-limit");
 const axios        = require("axios");
 const embyClient   = require("./lib/embyClient");
 const { redactServerUrl } = require("./lib/redact");
+const { version } = require("./package.json");
 // JELLYFIN: Jellyfin client import commented out for future Jellyfin support
 // const jellyfinClient = require("./lib/jellyfinClient");
 require("dotenv").config();
@@ -54,7 +55,7 @@ app.post("/api/get-emby-tokens", embyAuthLimiter, async (req, res) => {
       url: authUrl,
       headers: {
         "Content-Type": "application/json",
-        "X-Emby-Authorization": 'MediaBrowser Client="StreamBridge", Device="WebHelper", DeviceId="webhelper", Version="1.2.2"'
+        "X-Emby-Authorization": `MediaBrowser Client="StreamBridge", Device="WebHelper", DeviceId="webhelper", Version="${version}"`
       },
       data: { Username: username, Pw: password || "" },
       timeout: 5000,
@@ -96,7 +97,7 @@ app.post("/api/get-emby-tokens", embyAuthLimiter, async (req, res) => {
 function baseManifest () {
   return {
     id      : "org.streambridge.embyresolver",
-    version : "1.2.2",
+    version,
     name    : "StreamBridge: Emby to Stremio",
     description:
       "Stream media from your Emby server using IMDb/TMDB/Tvdb/Anidb IDs.",
@@ -244,9 +245,6 @@ app.get("/:cfg/stream/:type/:id.json", async (req, res) => {
     
     // Get hideStreamTypes from config (defaults to empty array for backward compatibility)
     const hideStreamTypes = cfg.hideStreamTypes || [];
-    
-    // Get server type for bingeGroup (defaults to 'emby' for backward compatibility)
-    const serverType = cfg.serverType || 'emby';
          
     const streams = (raw || [])
       .filter(s => s.directPlayUrl)
@@ -257,7 +255,7 @@ app.get("/:cfg/stream/:type/:id.json", async (req, res) => {
           filename: s.mediaInfo?.filename ?? undefined,
           videoSize: s.mediaInfo?.size ?? undefined,
           notWebReady: true, // Default to true for safety
-          bingeGroup: `${serverType}-${s.itemId}` // Enables auto-play for series episodes
+          bingeGroup: `${streamName}-${(s.qualityTitle || "Direct Play").trim()}` // Same stream name+quality = consistent auto-play across episodes
         };
         
         return {
