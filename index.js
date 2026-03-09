@@ -248,6 +248,9 @@ app.get("/:cfg/stream/:type/:id.json", async (req, res) => {
     
     // Get server type for bingeGroup (defaults to 'emby' for backward compatibility)
     const serverType = cfg.serverType || 'emby';
+
+    const addonBase = `${req.get("x-forwarded-proto") || req.protocol}://${req.get("host")}`;
+    const cfgStr = req.params.cfg;
          
     const streams = (raw || [])
       .filter(s => s.directPlayUrl)
@@ -260,13 +263,22 @@ app.get("/:cfg/stream/:type/:id.json", async (req, res) => {
           notWebReady: true, // Default to true for safety
           bingeGroup: `${serverType}-${s.itemId}` // Enables auto-play for series episodes
         };
+
+        let subtitles = s.subtitles || [];
+        if (subtitles.length > 0) {
+          subtitles = subtitles.map(sub => ({
+            id: sub.id,
+            lang: sub.lang,
+            url: `${addonBase}/${cfgStr}/subtitle?u=${Buffer.from(sub.url, "utf8").toString("base64url")}`
+          }));
+        }
         
         return {
           name: streamName, // Use custom stream name from config
           description: s.streamDescription || s.qualityTitle || "Direct Play", // Full detailed technical information
           url: s.directPlayUrl,
           behaviorHints: behaviorHints,
-          subtitles: s.subtitles || [] // Include subtitles if available
+          subtitles
         };
       });
     // Set cache based on whether streams were found
@@ -284,6 +296,67 @@ app.get("/:cfg/stream/:type/:id.json", async (req, res) => {
       console.error("Stack trace:", e.stack);
     }
     res.json({ streams: [] });
+  }
+});
+
+// ──────────────────────────────────────────────────────────────────────────
+// SUBTITLE PROXY  →  /<cfg>/subtitle?u=<base64url(embySubtitleUrl)>
+// Proxies subtitle files so the client fetches from the addon (CORS-friendly)
+// instead of directly from Emby (which blocks cross-origin requests).
+// ──────────────────────────────────────────────────────────────────────────
+const SUBTITLE_CONTENT_TYPE = {
+  srt: "application/x-subrip",
+  vtt: "text/vtt",
+  ass: "text/x-ssa",
+  ssa: "text/x-ssa"
+};
+
+app.get("/:cfg/subtitle", async (req, res) => {
+  let cfg;
+  try {
+    cfg = decodeCfg(req.params.cfg);
+  } catch {
+    return res.status(400).send("Bad config");
+  }
+
+  const encodedUrl = req.query.u;
+  if (!encodedUrl || typeof encodedUrl !== "string") {
+    return res.status(400).send("Missing u");
+  }
+
+  let targetUrl;
+  try {
+    targetUrl = Buffer.from(encodedUrl, "base64url").toString("utf8");
+  } catch {
+    return res.status(400).send("Invalid u");
+  }
+
+  const baseServer = (cfg.serverUrl || "").replace(/\/+$/, "");
+  if (!baseServer || !targetUrl.startsWith(baseServer)) {
+    return res.status(403).send("Subtitle URL not allowed");
+  }
+
+  try {
+    const ax = await axios({
+      method: "GET",
+      url: targetUrl,
+      responseType: "arraybuffer",
+      timeout: 15000,
+      validateStatus: () => true
+    });
+
+    if (ax.status !== 200) {
+      return res.status(ax.status).send(ax.statusText || "Subtitle fetch failed");
+    }
+
+    const ext = (targetUrl.split("/").pop() || "").split(".").pop()?.toLowerCase() || "srt";
+    const contentType = SUBTITLE_CONTENT_TYPE[ext] || "application/x-subrip";
+    res.set("Content-Type", contentType);
+    res.set("Cache-Control", "public, max-age=3600");
+    res.send(ax.data);
+  } catch (e) {
+    console.warn("Subtitle proxy error:", e?.message || String(e));
+    return res.status(502).send("Subtitle fetch failed");
   }
 });
 
