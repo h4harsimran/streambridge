@@ -249,6 +249,20 @@ app.get("/stream/:type/:id.json", async (req, res) => {
 });
 
 // ──────────────────────────────────────────────────────────────────────────
+// ENV CONFIG STATUS  →  /api/env-config
+// Returns resolved credentials so the configure page can skip Step 1
+// ──────────────────────────────────────────────────────────────────────────
+app.get("/api/env-config", (_req, res) => {
+  if (!envConfig) return res.json({ configured: false });
+  res.json({
+    configured:  true,
+    serverUrl:   envConfig.serverUrl,
+    userId:      envConfig.userId,
+    accessToken: envConfig.accessToken
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────
 // CONFIGURE
 // ──────────────────────────────────────────────────────────────────────────
 app.get("/configure", (_req, res) =>
