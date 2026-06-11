@@ -1,0 +1,9 @@
+services:
+  streambridge:
+    image: ghcr.io/shrapnel576/streambridge:latest
+    ports:
+      - "7000:7000"
+    environment:
+      - PORT=7000
+      # NODE_ENV=production
+    restart: unless-stopped
