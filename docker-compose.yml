@@ -1,9 +1,13 @@
 services:
   streambridge:
+    container_name: streambridge
     image: ghcr.io/shrapnel576/streambridge:latest
     ports:
       - "7000:7000"
     environment:
       - PORT=7000
       # NODE_ENV=production
+      # EMBY_SERVER_URL=http://your-emby-server:8096
+      # EMBY_USERNAME=your-username
+      # EMBY_PASSWORD=your-password
     restart: unless-stopped
