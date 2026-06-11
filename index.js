@@ -153,6 +153,8 @@ async function handleStreamRequest(cfg, type, id, res) {
   if (!cfg.serverUrl || !cfg.userId || !cfg.accessToken)
     return res.json({ streams: [] });
 
+  console.log(`[SEARCH] ${type} ${id} → ${redactServerUrl(cfg.serverUrl)}`);
+
   try {
     const raw             = await embyClient.getStream(id, cfg);
     const streamName      = cfg.streamName      || "Emby";
