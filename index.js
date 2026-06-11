@@ -163,18 +163,23 @@ async function handleStreamRequest(cfg, type, id, res) {
     const streams = (raw || [])
       .filter(s => s.directPlayUrl)
       .filter(s => !shouldFilterStream(s, hideStreamTypes))
-      .map(s => ({
-        name        : streamName,
-        description : s.streamDescription || s.qualityTitle || "Direct Play",
-        url         : s.directPlayUrl,
-        behaviorHints: {
-          filename  : s.mediaInfo?.filename ?? undefined,
-          videoSize : s.mediaInfo?.size     ?? undefined,
-          notWebReady: true,
-          bingeGroup: `${streamName}-${(s.qualityTitle || "Direct Play").trim()}`
-        },
-        subtitles: (cfg.includeSubtitles === false) ? [] : (s.subtitles || [])
-      }));
+      .map(s => {
+        const qualityLabel = [s.mediaInfo?.qualityTag, s.mediaInfo?.hdrTag]
+          .filter(Boolean).join(" ") || s.qualityTitle || "Direct Play";
+        return {
+          name        : `${streamName}\n${qualityLabel}`,
+          description : s.streamDescription || s.qualityTitle || "Direct Play",
+          url         : s.directPlayUrl,
+          behaviorHints: {
+            filename   : s.mediaInfo?.filename ?? undefined,
+            videoSize  : s.mediaInfo?.size     ?? undefined,
+            videoHash  : s.mediaInfo?.videoHash ?? undefined,
+            notWebReady: true,
+            bingeGroup : `${streamName}|${(s.qualityTitle || "Direct Play").trim()}`
+          },
+          subtitles: (cfg.includeSubtitles === false) ? [] : (s.subtitles || [])
+        };
+      });
 
     console.log(`[STREAM] ${type}/${id} → ${streams.length} stream(s)`);
 
