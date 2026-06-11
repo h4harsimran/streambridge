@@ -373,6 +373,33 @@ function syncServerType(serverType) {
 // Initialize server type on page load (default to Emby)
 syncServerType("emby");
 
+// On load: if the server was pre-configured via EMBY_* env vars, skip Step 1
+(async function checkEnvConfig() {
+  try {
+    const res  = await fetch("/api/env-config");
+    const data = await res.json();
+    if (!data.configured) return;
+
+    // Replace the input form with a static notice
+    const helperForm = $("#helper");
+    const notice = document.createElement("p");
+    notice.style.cssText = "color:var(--accent);font-size:.9rem;margin:.25rem 0 0";
+    notice.textContent = "✓ Credentials configured via environment variables — no input required.";
+    helperForm.replaceWith(notice);
+
+    // Show the access info panel
+    $("#uid").textContent = data.userId;
+    $("#tok").textContent = data.accessToken;
+    $("#helperOut").style.display = "block";
+
+    // Auto-fill Step 2
+    const cf = $("#cfg");
+    cf.serverUrl.value   = data.serverUrl;
+    cf.userId.value      = data.userId;
+    cf.accessToken.value = data.accessToken;
+  } catch { /* env-config check is best-effort */ }
+})();
+
 /*── 2 · Helper ──*/
 async function authenticateEmby(serverUrl, username, password) {
   const res = await fetch("/api/get-emby-tokens", {
