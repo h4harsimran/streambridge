@@ -56,8 +56,11 @@
 | **🔍 Multi-ID Matching** | Supports IMDb (`tt1234567`), TMDb (`tmdb:98765`), Tvdb, and Anidb IDs |
 | **📺 Direct-Play Multi-Quality** | Direct play URLs with support for different quality options (4K, 1080p, 720p, etc.) |
 | **📝 Subtitle Support** | Automatic subtitle loading from your server library |
+| **⏱️ Playback Scrobbling** | Real-time playback sync (Now Playing dashboard, pause states, and resume positions) |
+| **✅ Watched State Sync** | Automatic watch completion sync, plus manual watched/unwatched and season batch sync |
+| **⭐ Library Sync** | Optional synchronization between your Stremio Library and Emby Favorites |
 | **🔄 Emby Support** | Works with Emby servers |
-| **⚙️ Configurable** | Customizable stream names and server display options |
+| **⚙️ Configurable** | Customizable stream names, quality filtering, and sync preferences |
 
 ---
 

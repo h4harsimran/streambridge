@@ -105,6 +105,12 @@ function baseManifest () {
     resources: [
       { name: "stream",
         types: ["movie", "series"],
+        idPrefixes: ["tt", "imdb:", "tmdb:"] },
+      { name: "player",
+        types: ["movie", "series"],
+        idPrefixes: ["tt", "imdb:", "tmdb:"] },
+      { name: "library",
+        types: ["movie", "series"],
         idPrefixes: ["tt", "imdb:", "tmdb:"] }
     ],
     types: ["movie", "series"],
@@ -137,6 +143,9 @@ function decodeCfg(str) {
     cfg.streamName = cfg.serverType === 'jellyfin' ? 'Jellyfin' : 'Emby';
   }
   if (!cfg.hideStreamTypes) cfg.hideStreamTypes = []; // Default: show all stream types
+  if (cfg.syncPlayback === undefined) cfg.syncPlayback = true; // Default: scrobble playback to Emby
+  if (cfg.syncWatched === undefined) cfg.syncWatched = true;   // Default: sync watched/unwatched
+  if (cfg.syncFavorites === undefined) cfg.syncFavorites = false; // Default: do not alter favorites unless opted in
   
   return cfg;
 }
@@ -281,6 +290,60 @@ app.get("/:cfg/stream/:type/:id.json", async (req, res) => {
       console.error("Stack trace:", e.stack);
     }
     res.json({ streams: [] });
+  }
+});
+
+// ──────────────────────────────────────────────────────────────────────────
+// PLAYER route  →  /:cfg/player/:type/:videoID/:extraArgs.json
+// ──────────────────────────────────────────────────────────────────────────
+app.get(["/:cfg/player/:type/:videoID/:extraArgs.json", "/:cfg/player/:type/:videoID.json"], async (req, res) => {
+  res.set("Cache-Control", "no-store");
+
+  let cfg;
+  try {
+    cfg = decodeCfg(req.params.cfg);
+  } catch {
+    return res.json({ success: false });
+  }
+
+  const { videoID, extraArgs } = req.params;
+  if (!cfg.serverUrl || !cfg.userId || !cfg.accessToken || !videoID) {
+    return res.json({ success: false });
+  }
+
+  try {
+    const result = await embyClient.handlePlayerEvent(videoID, extraArgs || "", cfg);
+    res.json(result || { success: true });
+  } catch (err) {
+    console.error("Player event error:", err?.message || String(err));
+    res.json({ success: false });
+  }
+});
+
+// ──────────────────────────────────────────────────────────────────────────
+// LIBRARY route  →  /:cfg/library/:type/:id/:extraArgs.json
+// ──────────────────────────────────────────────────────────────────────────
+app.get(["/:cfg/library/:type/:id/:extraArgs.json", "/:cfg/library/:type/:id.json"], async (req, res) => {
+  res.set("Cache-Control", "no-store");
+
+  let cfg;
+  try {
+    cfg = decodeCfg(req.params.cfg);
+  } catch {
+    return res.json({ success: false });
+  }
+
+  const { id, extraArgs } = req.params;
+  if (!cfg.serverUrl || !cfg.userId || !cfg.accessToken || !id) {
+    return res.json({ success: false });
+  }
+
+  try {
+    const result = await embyClient.handleLibraryEvent(id, extraArgs || "", cfg);
+    res.json(result || { success: true });
+  } catch (err) {
+    console.error("Library event error:", err?.message || String(err));
+    res.json({ success: false });
   }
 });
 

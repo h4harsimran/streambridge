@@ -285,6 +285,31 @@ iframe[id*="kofi-wo-container"] {
           </label>
         </div>
       </div>
+
+      <!-- Playback & Library Activity Sync Options -->
+      <div class="field-group">
+        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;margin:0;">
+          <input type="checkbox" name="syncPlayback" id="syncPlayback" checked>
+          <span>Sync playback progress (Now Playing & Resume position)</span>
+        </label>
+        <small>Reports play, pause, and stop events to Emby so Stremio playback appears on your server dashboard and saves resume points.</small>
+      </div>
+
+      <div class="field-group">
+        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;margin:0;">
+          <input type="checkbox" name="syncWatched" id="syncWatched" checked>
+          <span>Sync watched & unwatched status</span>
+        </label>
+        <small>Marks items as played in Emby when completed in Stremio or marked in your library.</small>
+      </div>
+
+      <div class="field-group">
+        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;margin:0;">
+          <input type="checkbox" name="syncFavorites" id="syncFavorites">
+          <span>Sync Stremio library with Emby favorites</span>
+        </label>
+        <small>Adding or removing items in your Stremio Library will update your Favorites in Emby.</small>
+      </div>
     </div>
     
     <button id="cfgBtn" style="margin-top:1rem">Create & Install Addon</button>
@@ -555,6 +580,17 @@ $("#cfg").addEventListener("submit",e=>{
     cfg.includeSubtitles = false;
   }
 
+  // Playback & library activity sync preferences
+  if (formData.get("syncPlayback") === null) {
+    cfg.syncPlayback = false;
+  }
+  if (formData.get("syncWatched") === null) {
+    cfg.syncWatched = false;
+  }
+  if (formData.get("syncFavorites") !== null) {
+    cfg.syncFavorites = true;
+  }
+
   const cfg64=btoa(unescape(encodeURIComponent(JSON.stringify(cfg))))
                 .replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 
@@ -579,6 +615,34 @@ $("#cfg").addEventListener("submit",e=>{
   $("#cfgOut").appendChild(urlDisplay);
   $("#cfgOut").appendChild(copyBtn);
 });
+
+// Auto pre-fill if loaded from /:cfg/configure
+try {
+  const parts = window.location.pathname.split("/").filter(Boolean);
+  if (parts.length >= 2 && parts[parts.length - 1] === "configure") {
+    const cfgStr = parts[parts.length - 2];
+    const decoded = JSON.parse(decodeURIComponent(escape(atob(cfgStr.replace(/-/g, "+").replace(/_/g, "/")))));
+    if (decoded) {
+      const cf = $("#cfg");
+      if (decoded.serverUrl) cf.serverUrl.value = decoded.serverUrl;
+      if (decoded.userId) cf.userId.value = decoded.userId;
+      if (decoded.accessToken) cf.accessToken.value = decoded.accessToken;
+      if (decoded.streamName) cf.streamName.value = decoded.streamName;
+      if (decoded.showServerName !== undefined) cf.showServerName.checked = !!decoded.showServerName;
+      if (decoded.includeSubtitles !== undefined) cf.includeSubtitles.checked = !!decoded.includeSubtitles;
+      if (decoded.syncPlayback !== undefined) cf.syncPlayback.checked = !!decoded.syncPlayback;
+      if (decoded.syncWatched !== undefined) cf.syncWatched.checked = !!decoded.syncWatched;
+      if (decoded.syncFavorites !== undefined) cf.syncFavorites.checked = !!decoded.syncFavorites;
+      if (Array.isArray(decoded.hideStreamTypes)) {
+        cf.querySelectorAll("input[name='hideStreamTypes']").forEach(cb => {
+          cb.checked = decoded.hideStreamTypes.includes(cb.value);
+        });
+      }
+    }
+  }
+} catch (e) {
+  // Ignore malformed cfg in URL path
+}
 </script>
 <script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>
 <script>
