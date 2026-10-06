@@ -60,7 +60,7 @@
 | **📝 Subtitle Support** | Automatic subtitle loading from your server library |
 | **⏱️ Playback Scrobbling** | Real-time playback sync (Now Playing dashboard, pause states, and resume positions) |
 | **✅ Watched State Sync** | Automatic watch completion sync, plus manual watched/unwatched and season batch sync |
-| **⭐ Library & Playlist Sync** | Optional synchronization when adding titles in Stremio: sync to Emby Favorites or dedicated Playlists (with separate playlists for Movies and Shows) |
+| **⭐ Library & Playlist Sync** | Optional synchronization when adding titles to library in Stremio: sync to Emby Favorites or dedicated Playlists (with separate playlists for Movies and Shows) |
 | **🔄 Emby Support** | Works with Emby servers |
 | **⚙️ Configurable** | Customizable stream names, quality filtering, and sync preferences |
 
