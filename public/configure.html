@@ -45,11 +45,364 @@ a:hover{text-decoration:underline}
 }
 .form-group form{display:flex;flex-direction:column;gap:0}
 .form-group button{margin-top:0.75rem}
-.advanced-group{
-  background:#162029;border:1px solid #1f2a35;border-radius:10px;
-  padding:1.25rem;margin-top:0;
+/* Modern Advanced Options Accordion & Cards */
+.adv-accordion {
+  margin-top: 1.5rem;
+  border: 1px solid #233142;
+  border-radius: 12px;
+  background: #141c26;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
-.advanced-group h3{margin-top:0;margin-bottom:1.25rem;padding-bottom:0.75rem;border-bottom:1px solid #1f2a35}
+.adv-accordion:hover {
+  border-color: #2f4157;
+}
+.adv-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 1.25rem;
+  cursor: pointer;
+  user-select: none;
+  background: #16202c;
+  list-style: none;
+}
+.adv-summary::-webkit-details-marker {
+  display: none;
+}
+.adv-summary-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.adv-icon {
+  font-size: 1.25rem;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1c2633;
+  border-radius: 8px;
+  border: 1px solid #283749;
+  flex-shrink: 0;
+}
+.adv-title {
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.adv-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  margin-top: 0.15rem;
+}
+.adv-badge {
+  font-size: 0.74rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.adv-badge::after {
+  content: "▼";
+  font-size: 0.65rem;
+  transition: transform 0.25s ease;
+}
+.adv-accordion[open] .adv-badge::after {
+  transform: rotate(180deg);
+}
+.adv-content {
+  padding: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  border-top: 1px solid #1c2734;
+}
+
+/* Option Cards */
+.opt-card {
+  background: #101620;
+  border: 1px solid #1e2a38;
+  border-radius: 10px;
+  padding: 1.15rem;
+  transition: border-color 0.2s ease;
+}
+.opt-card:hover {
+  border-color: #2a3b4e;
+}
+.opt-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #192330;
+}
+.opt-card-icon {
+  font-size: 1.15rem;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #18222e;
+  border-radius: 6px;
+  border: 1px solid #263548;
+  flex-shrink: 0;
+}
+.opt-card-title {
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.opt-card-sub {
+  font-size: 0.76rem;
+  color: var(--text-dim);
+  margin-top: 0.15rem;
+}
+.opt-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+/* Sync Sub-Boxes & Visual Grouping */
+.sync-box {
+  background: rgba(12, 18, 26, 0.5);
+  border: 1px solid #1b2635;
+  border-radius: 9px;
+  padding: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.sync-box-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.2rem;
+}
+.sync-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  border-radius: 4px;
+  padding: 0.12rem 0.45rem;
+  align-self: flex-start;
+}
+.sync-box-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 0.25rem;
+}
+.sync-box-sub {
+  font-size: 0.76rem;
+  color: var(--text-dim);
+  line-height: 1.35;
+}
+
+/* Modern Switches */
+.switch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.switch-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  background: rgba(18, 26, 37, 0.5);
+  border: 1px solid #1d2a3a;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+.switch-item:hover {
+  background: rgba(26, 37, 52, 0.7);
+  border-color: #2b3e55;
+}
+.switch-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex: 1;
+}
+.switch-title {
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.3;
+}
+.switch-desc {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  line-height: 1.35;
+}
+.switch-ui {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  flex-shrink: 0;
+}
+.switch-ui input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+  margin: 0;
+}
+.switch-track {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #222f3e;
+  border: 1px solid #334459;
+  border-radius: 22px;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+.switch-track:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #8896aa;
+  border-radius: 50%;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease;
+}
+.switch-ui input:checked + .switch-track {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+.switch-ui input:checked + .switch-track:before {
+  transform: translateX(18px);
+  background-color: #ffffff;
+}
+
+/* Filter Chips */
+.chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.4rem;
+}
+.chip-item {
+  cursor: pointer;
+  margin: 0;
+}
+.chip-item input[type="checkbox"] {
+  display: none;
+}
+.chip-item span {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  border-radius: 18px;
+  background: #0d141e;
+  border: 1px solid #273547;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+.chip-item:hover span {
+  border-color: #3f516a;
+  color: var(--text);
+}
+.chip-item input[type="checkbox"]:checked + span {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: #ef4444;
+  color: #fca5a5;
+  text-decoration: line-through;
+}
+
+/* Sub Panels (Playlists) */
+.sub-panel {
+  background: #090e15;
+  border: 1px solid #1a2533;
+  border-radius: 9px;
+  padding: 0.95rem;
+  margin-top: 0.5rem;
+  animation: fade .25s ease;
+}
+.field-subgroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.field-subgroup label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+/* Radio Tiles */
+.radio-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.55rem;
+}
+.radio-tile {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  background: #111823;
+  border: 1px solid #202d3e;
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.radio-tile:hover {
+  border-color: #2f4157;
+}
+.radio-tile:has(input:checked) {
+  border-color: var(--accent);
+  background: rgba(34, 197, 94, 0.08);
+}
+.radio-tile input[type="radio"] {
+  margin-top: 0.15rem;
+}
+.radio-tile-title {
+  font-size: 0.83rem;
+  font-weight: 500;
+  color: var(--text);
+}
+.radio-tile-desc {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  margin-top: 0.15rem;
+  line-height: 1.3;
+}
+.mini-btn {
+  width: auto;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.76rem;
+  background: #182330;
+  border: 1px solid #2a3a4d;
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.mini-btn:hover {
+  background: #233345;
+  border-color: #3b506b;
+}
+
 .field-group{margin-bottom:1.25rem}
 .field-group:last-child{margin-bottom:0}
 /* Standard label styling - all labels in field-group */
@@ -71,7 +424,7 @@ a:hover{text-decoration:underline}
 
 .panel{
   background:var(--panel);padding:2rem;border-radius:var(--radius);
-  width:100%;max-width:600px;box-shadow:var(--shadow);
+  width:100%;max-width:620px;box-shadow:var(--shadow);
 }
 form{display:flex;flex-direction:column;gap:0}
 label{font-size:.9rem;display:block;font-weight:500;color:var(--text)}
@@ -237,137 +590,224 @@ iframe[id*="kofi-wo-container"] {
       </div>
     </div>
     
-    <!-- New configuration options -->
-    <div class="advanced-group">
-      <h3>Advanced Options</h3>
-      
-      <div class="field-group">
-        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;margin:0;">
-          <input type="checkbox" name="showServerName">
-          <span>Show server name in addon name</span>
-        </label>
-        <small>Better to keep it unchecked for privacy unless you are installing multiple instances of this addon</small>
-      </div>
-      
-      <div class="field-group">
-        <label class="description-after">Stream Name (displayed in Stremio)</label>
-        <small id="streamNameHint">Custom name for streams (defaults to "Emby")</small>
-        <input name="streamName" id="streamNameInput" placeholder="Emby" value="">
-      </div>
-      
-      <div class="field-group">
-        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;margin:0;">
-          <input type="checkbox" name="includeSubtitles" id="includeSubtitles" checked>
-          <span>Include subtitles from Emby</span>
-        </label>
-        <small>Uncheck to opt out of subtitles provided by your server</small>
-      </div>
-      
-      <div class="field-group">
-        <label class="description-after">Hide Stream Types</label>
-        <small>Check types to hide from results</small>
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:0.6rem;margin-top:0.5rem;">
-          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;margin:0;">
-            <input type="checkbox" name="hideStreamTypes" value="4K">
-            <span>4K</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;margin:0;">
-            <input type="checkbox" name="hideStreamTypes" value="1080p">
-            <span>1080p</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;margin:0;">
-            <input type="checkbox" name="hideStreamTypes" value="DV">
-            <span>Dolby Vision (DV)</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;margin:0;">
-            <input type="checkbox" name="hideStreamTypes" value="HDR">
-            <span>All HDR</span>
-          </label>
-        </div>
-      </div>
-
-      <!-- Playback & Library Activity Sync Options -->
-      <div class="field-group">
-        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;margin:0;">
-          <input type="checkbox" name="syncPlayback" id="syncPlayback" checked>
-          <span>Sync playback progress (Now Playing & Resume position)</span>
-        </label>
-        <small>Reports play, pause, and stop events to Emby so Stremio playback appears on your server dashboard and saves resume points.</small>
-      </div>
-
-      <div class="field-group">
-        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;margin:0;">
-          <input type="checkbox" name="syncWatched" id="syncWatched" checked>
-          <span>Sync watched & unwatched status</span>
-        </label>
-        <small>Marks items as played in Emby when completed in Stremio or marked in your library.</small>
-      </div>
-
-      <div class="field-group">
-        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;margin:0;">
-          <input type="checkbox" name="syncFavorites" id="syncFavorites">
-          <span>Sync Stremio library with Emby favorites</span>
-        </label>
-        <small>Adding or removing items in your Stremio Library will update your Favorites (Heart) in Emby.</small>
-      </div>
-
-      <div class="field-group">
-        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;margin:0;">
-          <input type="checkbox" name="syncPlaylist" id="syncPlaylist">
-          <span>Add to Emby Playlist(s)</span>
-        </label>
-        <small>Organize saved media into playlists on your Emby server when added to Stremio library.</small>
-      </div>
-
-      <!-- Playlist Configuration Card -->
-      <div id="playlistCard" style="display:none;background:#131c26;border:1px solid #233142;border-radius:10px;padding:1.15rem;margin-top:-0.5rem;margin-bottom:1.25rem;">
-        <div style="font-size:0.88rem;font-weight:600;color:var(--text);margin-bottom:0.75rem;">Playlist Mode</div>
-        
-        <div style="display:flex;flex-direction:column;gap:0.6rem;margin-bottom:1rem;">
-          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;margin:0;">
-            <input type="radio" name="playlistMode" value="separate" checked id="modeSeparate">
-            <span>Separate Playlists (Auto-Create)</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;margin:0;">
-            <input type="radio" name="playlistMode" value="existing" id="modeExisting">
-            <span>Use Existing Playlists</span>
-          </label>
-        </div>
-
-        <!-- Separate Playlists Inputs -->
-        <div id="separatePlaylistPanel" style="display:flex;flex-direction:column;gap:0.85rem;">
+    <!-- Advanced Options Section -->
+    <details class="adv-accordion" open>
+      <summary class="adv-summary">
+        <div class="adv-summary-left">
+          <div class="adv-icon">⚙️</div>
           <div>
-            <label style="font-size:0.82rem;color:var(--text-dim);margin-bottom:0.3rem;">Movies Playlist Name</label>
-            <input name="moviePlaylistName" id="moviePlaylistName" value="Stremio Movies" placeholder="Stremio Movies">
-          </div>
-          <div>
-            <label style="font-size:0.82rem;color:var(--text-dim);margin-bottom:0.3rem;">TV Shows Playlist Name</label>
-            <input name="seriesPlaylistName" id="seriesPlaylistName" value="Stremio Shows" placeholder="Stremio Shows">
-          </div>
-          <small style="color:var(--text-dim);font-size:0.78rem;">Playlists will be created automatically on your Emby server if they don't already exist.</small>
-        </div>
-
-        <!-- Existing Playlists Dropdowns -->
-        <div id="existingPlaylistPanel" style="display:none;flex-direction:column;gap:0.85rem;">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
-            <small id="existingPlaylistStatus" style="color:var(--text-dim);font-size:0.8rem;">Select playlists from your server:</small>
-            <button type="button" id="refreshPlaylistsBtn" style="width:auto;padding:0.35rem 0.75rem;font-size:0.8rem;background:#1e293b;">🔄 Refresh</button>
-          </div>
-          <div>
-            <label style="font-size:0.82rem;color:var(--text-dim);margin-bottom:0.3rem;">Movies Playlist</label>
-            <select name="moviePlaylistId" id="moviePlaylistId">
-              <option value="">-- None (Do not sync movies) --</option>
-            </select>
-          </div>
-          <div>
-            <label style="font-size:0.82rem;color:var(--text-dim);margin-bottom:0.3rem;">TV Shows Playlist</label>
-            <select name="seriesPlaylistId" id="seriesPlaylistId">
-              <option value="">-- None (Do not sync TV shows) --</option>
-            </select>
+            <div class="adv-title">Advanced Options</div>
+            <div class="adv-subtitle">Display settings, stream filters & Emby sync</div>
           </div>
         </div>
+        <div class="adv-badge">Customize</div>
+      </summary>
+
+      <div class="adv-content">
+        <!-- Card 1: Streams & Display Settings -->
+        <div class="opt-card">
+          <div class="opt-card-header">
+            <div class="opt-card-icon">🎬</div>
+            <div>
+              <div class="opt-card-title">Streams & Display</div>
+              <div class="opt-card-sub">Customize stream titles, subtitles, and quality filters</div>
+            </div>
+          </div>
+          
+          <div class="opt-card-body">
+            <div class="field-group" style="margin-bottom:0.75rem;">
+              <label class="description-after">Stream Name</label>
+              <small id="streamNameHint">Custom display name in Stremio stream list (default: "Emby")</small>
+              <input name="streamName" id="streamNameInput" placeholder="Emby" value="">
+            </div>
+
+            <div class="field-group" style="margin-bottom:0.75rem;">
+              <label class="description-after">Exclude Stream Qualities</label>
+              <small>Tap qualities to exclude them from Stremio search results</small>
+              <div class="chip-group">
+                <label class="chip-item">
+                  <input type="checkbox" name="hideStreamTypes" value="4K">
+                  <span>4K</span>
+                </label>
+                <label class="chip-item">
+                  <input type="checkbox" name="hideStreamTypes" value="1080p">
+                  <span>1080p</span>
+                </label>
+                <label class="chip-item">
+                  <input type="checkbox" name="hideStreamTypes" value="DV">
+                  <span>Dolby Vision</span>
+                </label>
+                <label class="chip-item">
+                  <input type="checkbox" name="hideStreamTypes" value="HDR">
+                  <span>All HDR</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="switch-list">
+              <label class="switch-item">
+                <div class="switch-info">
+                  <span class="switch-title">Include server subtitles</span>
+                  <span class="switch-desc">Deliver subtitles directly from your Emby server to Stremio</span>
+                </div>
+                <div class="switch-ui">
+                  <input type="checkbox" name="includeSubtitles" id="includeSubtitles" checked>
+                  <span class="switch-track"></span>
+                </div>
+              </label>
+
+              <label class="switch-item">
+                <div class="switch-info">
+                  <span class="switch-title">Show server name in addon title</span>
+                  <span class="switch-desc">Appends your server name (useful if running multiple instances)</span>
+                </div>
+                <div class="switch-ui">
+                  <input type="checkbox" name="showServerName">
+                  <span class="switch-track"></span>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Emby Synchronization Engine -->
+        <div class="opt-card">
+          <div class="opt-card-header">
+            <div class="opt-card-icon">🔄</div>
+            <div>
+              <div class="opt-card-title">Emby Server Synchronization</div>
+              <div class="opt-card-sub">Control how Stremio sends playback and watchlist events to Emby</div>
+            </div>
+          </div>
+          
+          <div class="opt-card-body">
+            <!-- Group 1: While Streaming -->
+            <div class="sync-box">
+              <div class="sync-box-header">
+                <span class="sync-badge">While Streaming</span>
+                <span class="sync-box-title">Playback & Watch Progress</span>
+                <span class="sync-box-sub">Updates Emby in real-time as you stream in Stremio</span>
+              </div>
+
+              <div class="switch-list">
+                <label class="switch-item">
+                  <div class="switch-info">
+                    <span class="switch-title">Sync playback progress & resume points</span>
+                    <span class="switch-desc">Reports active sessions to your Emby dashboard and saves resume points</span>
+                  </div>
+                  <div class="switch-ui">
+                    <input type="checkbox" name="syncPlayback" id="syncPlayback" checked>
+                    <span class="switch-track"></span>
+                  </div>
+                </label>
+
+                <label class="switch-item">
+                  <div class="switch-info">
+                    <span class="switch-title">Auto-mark as watched</span>
+                    <span class="switch-desc">Marks videos as completed in Emby when watched past 90% in Stremio</span>
+                  </div>
+                  <div class="switch-ui">
+                    <input type="checkbox" name="syncWatched" id="syncWatched" checked>
+                    <span class="switch-track"></span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- Group 2: Library Bookmarks -->
+            <div class="sync-box">
+              <div class="sync-box-header">
+                <span class="sync-badge">Library Bookmarks</span>
+                <span class="sync-box-title">When Saving Titles to Stremio Library</span>
+                <span class="sync-box-sub">What happens in Emby when you click "Add to Library" (bookmark icon)</span>
+              </div>
+
+              <div class="switch-list">
+                <!-- Favorites Toggle -->
+                <label class="switch-item">
+                  <div class="switch-info">
+                    <span class="switch-title">Add to Emby Favorites (❤️)</span>
+                    <span class="switch-desc">Items show up directly in Emby's Home Screen Favorites row</span>
+                  </div>
+                  <div class="switch-ui">
+                    <input type="checkbox" name="syncFavorites" id="syncFavorites">
+                    <span class="switch-track"></span>
+                  </div>
+                </label>
+
+                <!-- Playlists Toggle -->
+                <label class="switch-item">
+                  <div class="switch-info">
+                    <span class="switch-title">Add to Emby Playlist(s) (📋)</span>
+                    <span class="switch-desc">Save bookmarked movies and shows into playlists on your server</span>
+                  </div>
+                  <div class="switch-ui">
+                    <input type="checkbox" name="syncPlaylist" id="syncPlaylist">
+                    <span class="switch-track"></span>
+                  </div>
+                </label>
+              </div>
+
+              <!-- Nested Playlist Configuration -->
+              <div id="playlistCard" class="sub-panel" style="display:none;">
+                <div style="font-size:0.8rem;font-weight:600;color:var(--text);margin-bottom:0.6rem;letter-spacing:0.02em;">PLAYLIST DESTINATION</div>
+                
+                <div class="radio-tiles">
+                  <label class="radio-tile">
+                    <input type="radio" name="playlistMode" value="separate" checked id="modeSeparate">
+                    <div class="radio-tile-content">
+                      <div class="radio-tile-title">Separate Playlists (Auto)</div>
+                      <div class="radio-tile-desc">Creates dedicated playlists for movies and TV shows</div>
+                    </div>
+                  </label>
+
+                  <label class="radio-tile">
+                    <input type="radio" name="playlistMode" value="existing" id="modeExisting">
+                    <div class="radio-tile-content">
+                      <div class="radio-tile-title">Existing Playlists</div>
+                      <div class="radio-tile-desc">Select from playlists already created on your server</div>
+                    </div>
+                  </label>
+                </div>
+
+                <!-- Mode 1: Separate Playlists -->
+                <div id="separatePlaylistPanel" style="display:flex;flex-direction:column;gap:0.75rem;margin-top:0.85rem;">
+                  <div class="field-subgroup">
+                    <label>🎬 Movies Playlist Name</label>
+                    <input name="moviePlaylistName" id="moviePlaylistName" value="Stremio Movies" placeholder="Stremio Movies">
+                  </div>
+                  <div class="field-subgroup">
+                    <label>📺 TV Shows Playlist Name</label>
+                    <input name="seriesPlaylistName" id="seriesPlaylistName" value="Stremio Shows" placeholder="Stremio Shows">
+                  </div>
+                  <small style="color:var(--text-dim);font-size:0.76rem;">Playlists will be created automatically on your Emby server if they don't exist.</small>
+                </div>
+
+                <!-- Mode 2: Existing Playlists -->
+                <div id="existingPlaylistPanel" style="display:none;flex-direction:column;gap:0.75rem;margin-top:0.85rem;">
+                  <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <small id="existingPlaylistStatus" style="color:var(--text-dim);font-size:0.8rem;">Select playlists from your server:</small>
+                    <button type="button" id="refreshPlaylistsBtn" class="mini-btn">🔄 Refresh</button>
+                  </div>
+                  <div class="field-subgroup">
+                    <label>🎬 Movies Playlist</label>
+                    <select name="moviePlaylistId" id="moviePlaylistId">
+                      <option value="">-- None (Do not sync movies) --</option>
+                    </select>
+                  </div>
+                  <div class="field-subgroup">
+                    <label>📺 TV Shows Playlist</label>
+                    <select name="seriesPlaylistId" id="seriesPlaylistId">
+                      <option value="">-- None (Do not sync TV shows) --</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </details>
     
     <button id="cfgBtn" style="margin-top:1rem">Create & Install Addon</button>
   </form>
