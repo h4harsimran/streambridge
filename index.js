@@ -4,6 +4,7 @@
  * User data is embedded in the URL path as a base64-url string.
  */
 
+const crypto       = require("crypto");
 const express      = require("express");
 const path         = require("path");
 const cors         = require("cors");
@@ -18,6 +19,7 @@ require("dotenv").config();
 
 const PORT = process.env.PORT || 7000;
 const app  = express();
+app.set("trust proxy", 1);
 
 app.use(cors());
 app.use(express.static(path.join(__dirname, "public")));
@@ -254,7 +256,8 @@ app.get("/:cfg/manifest.json", (req, res) => {
     return res.status(500).json({ err: "Server error: Failed to generate base manifest object." });
   }
 
-  mf.id += "." + cfgString.slice(0, 8); 
+  const cfgHash = crypto.createHash("md5").update(cfgString).digest("hex").slice(0, 8);
+  mf.id += "." + cfgHash; 
 
   // Conditionally show server name based on config (defaults to false - server name hidden by default)
   if (cfg.showServerName === true) {
@@ -314,9 +317,9 @@ app.get("/:cfg/stream/:type/:id.json", async (req, res) => {
           subtitles: (cfg.includeSubtitles === false) ? [] : (s.subtitles || []) // Include subtitles unless user opted out
         };
       });
-    // Set cache based on whether streams were found
+    // Set cache based on whether streams were found (private ensures intermediate proxies never cache responses containing user API keys)
     if (streams.length > 0) {
-      res.set('Cache-Control', 'public, max-age=120');  // Cache for 2 minutes when streams exist
+      res.set('Cache-Control', 'private, max-age=120');  // Cache for 2 minutes when streams exist
     } else {
       res.set('Cache-Control', 'no-cache');  // Don't cache empty results
     }
