@@ -1,475 +1,720 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>StreamBridge • Emby ↔ Stremio Setup</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>StreamBridge • Emby ↔ Stremio Setup</title>
+  <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+  <link rel="alternate icon" href="/favicon.svg" />
 
-<!-- ----------  Design tokens  ---------- -->
-<style>
-:root{
-  --bg:      #11181f;
-  --panel:   #1b2530;
-  --accent:  #22c55e;           /* green-500 */
-  --accent-d:#16a34a;           /* darker hover */
-  --text:    #e6e9ef;
-  --text-dim:#9aa3b5;
-  --radius:  14px;
-  --shadow:  0 6px 24px rgba(0,0,0,.25);
-  --gap:     1.0rem;
-  font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-serif;
-  line-height:1.4;
-  color-scheme: dark;
-}
-*,*:before,*:after{box-sizing:border-box}
-body{
-  margin:0;min-height:100vh;background:var(--bg);color:var(--text);
-  display:flex;align-items:center;justify-content:center;padding:2rem 1rem;
-}
+  <!-- ----------  Design tokens  ---------- -->
+  <style>
+    :root {
+      --bg: #11181f;
+      --panel: #1b2530;
+      --accent: #22c55e;
+      /* green-500 */
+      --accent-d: #16a34a;
+      /* darker hover */
+      --text: #e6e9ef;
+      --text-dim: #9aa3b5;
+      --radius: 14px;
+      --shadow: 0 6px 24px rgba(0, 0, 0, .25);
+      --gap: 1.0rem;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, sans-serif;
+      line-height: 1.4;
+      color-scheme: dark;
+    }
 
-h1{margin:.5rem 0 0.5rem;text-align:center;font-size:1.6rem;font-weight:600}
-h2{margin:2rem 0 .75rem;font-size:1.15rem;font-weight:600;color:var(--text-dim)}
-h3{margin:1.5rem 0 .75rem;font-size:1rem;font-weight:600;color:var(--text-dim)}
-small{font-size:.8rem;color:var(--text-dim)}
-a{color:var(--accent);text-decoration:none}
-a:hover{text-decoration:underline}
+    *,
+    *:before,
+    *:after {
+      box-sizing: border-box
+    }
 
-/* Visual grouping and separation */
-.section-divider{
-  height:1px;background:linear-gradient(to right,transparent,#283141 20%,#283141 80%,transparent);
-  margin:2.5rem 0 1.5rem;border:none;
-}
-.form-group{
-  background:#162029;border:1px solid #1f2a35;border-radius:10px;
-  padding:1.25rem;margin-bottom:1rem;
-}
-.form-group form{display:flex;flex-direction:column;gap:0}
-.form-group button{margin-top:0.75rem}
-/* Modern Advanced Options Accordion & Cards */
-.adv-accordion {
-  margin-top: 1.5rem;
-  border: 1px solid #233142;
-  border-radius: 12px;
-  background: #141c26;
-  overflow: hidden;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-.adv-accordion:hover {
-  border-color: #2f4157;
-}
-.adv-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.1rem 1.25rem;
-  cursor: pointer;
-  user-select: none;
-  background: #16202c;
-  list-style: none;
-}
-.adv-summary::-webkit-details-marker {
-  display: none;
-}
-.adv-summary-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.adv-icon {
-  font-size: 1.25rem;
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #1c2633;
-  border-radius: 8px;
-  border: 1px solid #283749;
-  color: #94a3b8;
-  flex-shrink: 0;
-}
-.adv-title {
-  font-size: 0.98rem;
-  font-weight: 600;
-  color: var(--text);
-}
-.adv-subtitle {
-  font-size: 0.78rem;
-  color: var(--text-dim);
-  margin-top: 0.15rem;
-}
-.adv-badge {
-  font-size: 0.74rem;
-  padding: 0.25rem 0.6rem;
-  border-radius: 12px;
-  background: #1e293b;
-  border: 1px solid #334155;
-  color: var(--text-dim);
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-.adv-chevron {
-  display: inline-flex;
-  align-items: center;
-  transition: transform 0.25s ease;
-  color: var(--text-dim);
-}
-.adv-accordion[open] .adv-chevron {
-  transform: rotate(180deg);
-}
-.adv-content {
-  padding: 1.15rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.15rem;
-  border-top: 1px solid #1c2734;
-}
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
 
-/* Option Cards */
-.opt-card {
-  background: #101620;
-  border: 1px solid #1e2a38;
-  border-radius: 10px;
-  padding: 1.15rem;
-  transition: border-color 0.2s ease;
-}
-.opt-card:hover {
-  border-color: #2a3b4e;
-}
-.opt-card-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid #192330;
-}
-.opt-card-icon {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #18222e;
-  border-radius: 7px;
-  border: 1px solid #263548;
-  color: #94a3b8;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
-}
-.opt-card:hover .opt-card-icon {
-  color: var(--accent);
-  border-color: rgba(34, 197, 94, 0.4);
-  background: rgba(34, 197, 94, 0.08);
-}
-.opt-card-title {
-  font-size: 0.94rem;
-  font-weight: 600;
-  color: var(--text);
-}
-.opt-card-sub {
-  font-size: 0.76rem;
-  color: var(--text-dim);
-  margin-top: 0.15rem;
-}
-.opt-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
-}
+    h1 {
+      margin: .5rem 0 0.5rem;
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 600
+    }
 
-/* Sync Sub-Boxes & Visual Grouping */
-.sync-box {
-  background: rgba(12, 18, 26, 0.5);
-  border: 1px solid #1b2635;
-  border-radius: 9px;
-  padding: 0.9rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-.sync-box-header {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  margin-bottom: 0.2rem;
-}
-.sync-badge {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--accent);
-  background: rgba(34, 197, 94, 0.1);
-  border: 1px solid rgba(34, 197, 94, 0.25);
-  border-radius: 4px;
-  padding: 0.12rem 0.45rem;
-  align-self: flex-start;
-}
-.sync-box-title {
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--text);
-  margin-top: 0.25rem;
-}
-.sync-box-sub {
-  font-size: 0.76rem;
-  color: var(--text-dim);
-  line-height: 1.35;
-}
+    h2 {
+      margin: 2rem 0 .75rem;
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--text-dim)
+    }
 
-/* Modern Switches */
-.switch-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-.switch-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.85rem;
-  padding: 0.65rem 0.85rem;
-  border-radius: 8px;
-  background: rgba(18, 26, 37, 0.5);
-  border: 1px solid #1d2a3a;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  user-select: none;
-}
-.switch-item:hover {
-  background: rgba(26, 37, 52, 0.7);
-  border-color: #2b3e55;
-}
-.switch-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  flex: 1;
-}
-.switch-title {
-  font-size: 0.86rem;
-  font-weight: 500;
-  color: var(--text);
-  line-height: 1.3;
-}
-.switch-desc {
-  font-size: 0.75rem;
-  color: var(--text-dim);
-  line-height: 1.35;
-}
-.switch-ui {
-  position: relative;
-  width: 40px;
-  height: 22px;
-  flex-shrink: 0;
-}
-.switch-ui input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-  position: absolute;
-  margin: 0;
-}
-.switch-track {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: #222f3e;
-  border: 1px solid #334459;
-  border-radius: 22px;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
-}
-.switch-track:before {
-  position: absolute;
-  content: "";
-  height: 14px;
-  width: 14px;
-  left: 3px;
-  bottom: 3px;
-  background-color: #8896aa;
-  border-radius: 50%;
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease;
-}
-.switch-ui input:checked + .switch-track {
-  background-color: var(--accent);
-  border-color: var(--accent);
-}
-.switch-ui input:checked + .switch-track:before {
-  transform: translateX(18px);
-  background-color: #ffffff;
-}
+    h3 {
+      margin: 1.5rem 0 .75rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-dim)
+    }
 
-/* Filter Chips */
-.chip-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  margin-top: 0.4rem;
-}
-.chip-item {
-  cursor: pointer;
-  margin: 0;
-}
-.chip-item input[type="checkbox"] {
-  display: none;
-}
-.chip-item span {
-  display: inline-block;
-  padding: 0.35rem 0.75rem;
-  border-radius: 18px;
-  background: #0d141e;
-  border: 1px solid #273547;
-  color: var(--text-dim);
-  font-size: 0.8rem;
-  font-weight: 500;
-  transition: all 0.15s ease;
-  user-select: none;
-}
-.chip-item:hover span {
-  border-color: #3f516a;
-  color: var(--text);
-}
-.chip-item input[type="checkbox"]:checked + span {
-  background: rgba(239, 68, 68, 0.12);
-  border-color: #ef4444;
-  color: #fca5a5;
-  text-decoration: line-through;
-}
+    small {
+      font-size: .8rem;
+      color: var(--text-dim)
+    }
 
-/* Sub Panels (Playlists) */
-.sub-panel {
-  background: #090e15;
-  border: 1px solid #1a2533;
-  border-radius: 9px;
-  padding: 0.95rem;
-  margin-top: 0.5rem;
-  animation: fade .25s ease;
-}
-.field-subgroup {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-.field-subgroup label {
-  font-size: 0.78rem;
-  font-weight: 500;
-  color: var(--text-dim);
-}
+    a {
+      color: var(--accent);
+      text-decoration: none
+    }
 
-/* Radio Tiles */
-.radio-tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.55rem;
-}
-.radio-tile {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.55rem;
-  background: #111823;
-  border: 1px solid #202d3e;
-  border-radius: 8px;
-  padding: 0.65rem 0.75rem;
-  cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
-}
-.radio-tile:hover {
-  border-color: #2f4157;
-}
-.radio-tile:has(input:checked) {
-  border-color: var(--accent);
-  background: rgba(34, 197, 94, 0.08);
-}
-.radio-tile input[type="radio"] {
-  margin-top: 0.15rem;
-}
-.radio-tile-title {
-  font-size: 0.83rem;
-  font-weight: 500;
-  color: var(--text);
-}
-.radio-tile-desc {
-  font-size: 0.72rem;
-  color: var(--text-dim);
-  margin-top: 0.15rem;
-  line-height: 1.3;
-}
-.mini-btn {
-  width: auto;
-  padding: 0.3rem 0.65rem;
-  font-size: 0.76rem;
-  background: #182330;
-  border: 1px solid #2a3a4d;
-  border-radius: 6px;
-  color: var(--text);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.mini-btn:hover {
-  background: #233345;
-  border-color: #3b506b;
-}
+    a:hover {
+      text-decoration: underline
+    }
 
-.field-group{margin-bottom:1.25rem}
-.field-group:last-child{margin-bottom:0}
-/* Standard label styling - all labels in field-group */
-.field-group > label{font-weight:500;color:var(--text)}
-/* Regular labels (not flex/checkbox) */
-.field-group > label:not([style*="display:flex"]){margin-bottom:0.4rem;margin-top:0}
-.field-group > label:not([style*="display:flex"]) + input{margin-top:0}
-/* Labels with descriptions - small text appears right after label */
-.field-group > label + small{margin-top:-0.15rem;margin-bottom:0.5rem}
-.field-group > label + small + input{margin-top:0}
-/* Checkbox labels (flex containers with inline checkbox) */
-.field-group > label[style*="display:flex"]{margin-bottom:0.5rem;margin-top:0;font-weight:normal}
-/* Small text after checkbox labels */
-.field-group > label[style*="display:flex"] + small{margin-top:0;margin-bottom:0}
-.form-output{
-  background:#162029;border:1px solid #1f2a35;border-radius:10px;
-  padding:1.25rem;margin-top:1rem;
-}
+    /* Visual grouping and separation */
+    .section-divider {
+      height: 1px;
+      background: linear-gradient(to right, transparent, #283141 20%, #283141 80%, transparent);
+      margin: 2.5rem 0 1.5rem;
+      border: none;
+    }
 
-.panel{
-  background:var(--panel);padding:2rem;border-radius:var(--radius);
-  width:100%;max-width:620px;box-shadow:var(--shadow);
-}
-form{display:flex;flex-direction:column;gap:0}
-label{font-size:.9rem;display:block;font-weight:500;color:var(--text)}
-small{font-size:.8rem;color:var(--text-dim);line-height:1.4;display:block}
-input, select{
-  width:100%;padding:.65rem .8rem;border-radius:8px;border:1px solid #334155;
-  background:#0f1722;color:var(--text);font-size:.95rem;
-}
-input:focus, select:focus{outline:2px solid var(--accent);outline-offset:0}
-input[type="checkbox"], input[type="radio"]{width:auto;margin:0 .5rem 0 0;cursor:pointer}
-form#cfg{display:flex;flex-direction:column;gap:0}
-form#cfg > *{width:100%}
-button{
-  display:inline-flex;align-items:center;justify-content:center;
-  gap:.45rem;padding:.75rem 1rem;font-weight:600;font-size:.96rem;
-  border:0;border-radius:8px;background:var(--accent);color:#fff;cursor:pointer;
-  transition:.18s transform,.18s background;width:100%;
-}
-button:hover{background:var(--accent-d);transform:translateY(-1px)}
-button:disabled{opacity:.45;cursor:default;transform:none}
+    .form-group {
+      background: #162029;
+      border: 1px solid #1f2a35;
+      border-radius: 10px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
 
-pre{
-  background:#0f1722;border:1px solid #283141;color:#e2e8f0;
-  padding:.9rem;border-radius:8px;white-space:pre-wrap;word-break:break-all;
-  margin:0;
-}
-.out{margin-top:1rem;animation:fade .35s ease}
-@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
-.toast{
-  position:fixed;bottom:1.1rem;left:50%;transform:translateX(-50%);
-  background:#272e38;padding:.7rem 1.4rem;border-radius:8px;
-  box-shadow:var(--shadow);font-size:.9rem;opacity:0;pointer-events:none;
-  transition:opacity .25s ease;
-}
-.toast.show{opacity:1}
+    .form-group form {
+      display: flex;
+      flex-direction: column;
+      gap: 0
+    }
 
-/* JELLYFIN: Server Type Selection Cards - Commented out for future Jellyfin support
+    .form-group button {
+      margin-top: 0.75rem
+    }
+
+    /* Modern Advanced Options Accordion & Cards */
+    .adv-accordion {
+      margin-top: 1.5rem;
+      border: 1px solid #233142;
+      border-radius: 12px;
+      background: #141c26;
+      overflow: hidden;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .adv-accordion:hover {
+      border-color: #2f4157;
+    }
+
+    .adv-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.1rem 1.25rem;
+      cursor: pointer;
+      user-select: none;
+      background: #16202c;
+      list-style: none;
+    }
+
+    .adv-summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .adv-summary-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .adv-icon {
+      font-size: 1.25rem;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #1c2633;
+      border-radius: 8px;
+      border: 1px solid #283749;
+      color: #94a3b8;
+      flex-shrink: 0;
+    }
+
+    .adv-title {
+      font-size: 0.98rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .adv-subtitle {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      margin-top: 0.15rem;
+    }
+
+    .adv-badge {
+      font-size: 0.74rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 12px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .adv-chevron {
+      display: inline-flex;
+      align-items: center;
+      transition: transform 0.25s ease;
+      color: var(--text-dim);
+    }
+
+    .adv-accordion[open] .adv-chevron {
+      transform: rotate(180deg);
+    }
+
+    .adv-content {
+      padding: 1.15rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.15rem;
+      border-top: 1px solid #1c2734;
+    }
+
+    /* Option Cards */
+    .opt-card {
+      background: #101620;
+      border: 1px solid #1e2a38;
+      border-radius: 10px;
+      padding: 1.15rem;
+      transition: border-color 0.2s ease;
+    }
+
+    .opt-card:hover {
+      border-color: #2a3b4e;
+    }
+
+    .opt-card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid #192330;
+    }
+
+    .opt-card-icon {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #18222e;
+      border-radius: 7px;
+      border: 1px solid #263548;
+      color: #94a3b8;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+
+    .opt-card:hover .opt-card-icon {
+      color: var(--accent);
+      border-color: rgba(34, 197, 94, 0.4);
+      background: rgba(34, 197, 94, 0.08);
+    }
+
+    .opt-card-title {
+      font-size: 0.94rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .opt-card-sub {
+      font-size: 0.76rem;
+      color: var(--text-dim);
+      margin-top: 0.15rem;
+    }
+
+    .opt-card-body {
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+    }
+
+    /* Sync Sub-Boxes & Visual Grouping */
+    .sync-box {
+      background: rgba(12, 18, 26, 0.5);
+      border: 1px solid #1b2635;
+      border-radius: 9px;
+      padding: 0.9rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .sync-box-header {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .sync-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.25);
+      border-radius: 4px;
+      padding: 0.12rem 0.45rem;
+      align-self: flex-start;
+    }
+
+    .sync-box-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-top: 0.25rem;
+    }
+
+    .sync-box-sub {
+      font-size: 0.76rem;
+      color: var(--text-dim);
+      line-height: 1.35;
+    }
+
+    /* Modern Switches */
+    .switch-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .switch-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.85rem;
+      padding: 0.65rem 0.85rem;
+      border-radius: 8px;
+      background: rgba(18, 26, 37, 0.5);
+      border: 1px solid #1d2a3a;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .switch-item:hover {
+      background: rgba(26, 37, 52, 0.7);
+      border-color: #2b3e55;
+    }
+
+    .switch-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      flex: 1;
+    }
+
+    .switch-title {
+      font-size: 0.86rem;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1.3;
+    }
+
+    .switch-desc {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      line-height: 1.35;
+    }
+
+    .switch-ui {
+      position: relative;
+      width: 40px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+
+    .switch-ui input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+      margin: 0;
+    }
+
+    .switch-track {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #222f3e;
+      border: 1px solid #334459;
+      border-radius: 22px;
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .switch-track:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: #8896aa;
+      border-radius: 50%;
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease;
+    }
+
+    .switch-ui input:checked+.switch-track {
+      background-color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .switch-ui input:checked+.switch-track:before {
+      transform: translateX(18px);
+      background-color: #ffffff;
+    }
+
+    /* Filter Chips */
+    .chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin-top: 0.4rem;
+    }
+
+    .chip-item {
+      cursor: pointer;
+      margin: 0;
+    }
+
+    .chip-item input[type="checkbox"] {
+      display: none;
+    }
+
+    .chip-item span {
+      display: inline-block;
+      padding: 0.35rem 0.75rem;
+      border-radius: 18px;
+      background: #0d141e;
+      border: 1px solid #273547;
+      color: var(--text-dim);
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .chip-item:hover span {
+      border-color: #3f516a;
+      color: var(--text);
+    }
+
+    .chip-item input[type="checkbox"]:checked+span {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: #ef4444;
+      color: #fca5a5;
+      text-decoration: line-through;
+    }
+
+    /* Sub Panels (Playlists) */
+    .sub-panel {
+      background: #090e15;
+      border: 1px solid #1a2533;
+      border-radius: 9px;
+      padding: 0.95rem;
+      margin-top: 0.5rem;
+      animation: fade .25s ease;
+    }
+
+    .field-subgroup {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .field-subgroup label {
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text-dim);
+    }
+
+    /* Radio Tiles */
+    .radio-tiles {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.55rem;
+    }
+
+    .radio-tile {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.55rem;
+      background: #111823;
+      border: 1px solid #202d3e;
+      border-radius: 8px;
+      padding: 0.65rem 0.75rem;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .radio-tile:hover {
+      border-color: #2f4157;
+    }
+
+    .radio-tile:has(input:checked) {
+      border-color: var(--accent);
+      background: rgba(34, 197, 94, 0.08);
+    }
+
+    .radio-tile input[type="radio"] {
+      margin-top: 0.15rem;
+    }
+
+    .radio-tile-title {
+      font-size: 0.83rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .radio-tile-desc {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      margin-top: 0.15rem;
+      line-height: 1.3;
+    }
+
+    .mini-btn {
+      width: auto;
+      padding: 0.3rem 0.65rem;
+      font-size: 0.76rem;
+      background: #182330;
+      border: 1px solid #2a3a4d;
+      border-radius: 6px;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .mini-btn:hover {
+      background: #233345;
+      border-color: #3b506b;
+    }
+
+    .field-group {
+      margin-bottom: 1.25rem
+    }
+
+    .field-group:last-child {
+      margin-bottom: 0
+    }
+
+    /* Standard label styling - all labels in field-group */
+    .field-group>label {
+      font-weight: 500;
+      color: var(--text)
+    }
+
+    /* Regular labels (not flex/checkbox) */
+    .field-group>label:not([style*="display:flex"]) {
+      margin-bottom: 0.4rem;
+      margin-top: 0
+    }
+
+    .field-group>label:not([style*="display:flex"])+input {
+      margin-top: 0
+    }
+
+    /* Labels with descriptions - small text appears right after label */
+    .field-group>label+small {
+      margin-top: -0.15rem;
+      margin-bottom: 0.5rem
+    }
+
+    .field-group>label+small+input {
+      margin-top: 0
+    }
+
+    /* Checkbox labels (flex containers with inline checkbox) */
+    .field-group>label[style*="display:flex"] {
+      margin-bottom: 0.5rem;
+      margin-top: 0;
+      font-weight: normal
+    }
+
+    /* Small text after checkbox labels */
+    .field-group>label[style*="display:flex"]+small {
+      margin-top: 0;
+      margin-bottom: 0
+    }
+
+    .form-output {
+      background: #162029;
+      border: 1px solid #1f2a35;
+      border-radius: 10px;
+      padding: 1.25rem;
+      margin-top: 1rem;
+    }
+
+    .panel {
+      background: var(--panel);
+      padding: 2rem;
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 620px;
+      box-shadow: var(--shadow);
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 0
+    }
+
+    label {
+      font-size: .9rem;
+      display: block;
+      font-weight: 500;
+      color: var(--text)
+    }
+
+    small {
+      font-size: .8rem;
+      color: var(--text-dim);
+      line-height: 1.4;
+      display: block
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: .65rem .8rem;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background: #0f1722;
+      color: var(--text);
+      font-size: .95rem;
+    }
+
+    input:focus,
+    select:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 0
+    }
+
+    input[type="checkbox"],
+    input[type="radio"] {
+      width: auto;
+      margin: 0 .5rem 0 0;
+      cursor: pointer
+    }
+
+    form#cfg {
+      display: flex;
+      flex-direction: column;
+      gap: 0
+    }
+
+    form#cfg>* {
+      width: 100%
+    }
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .45rem;
+      padding: .75rem 1rem;
+      font-weight: 600;
+      font-size: .96rem;
+      border: 0;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      transition: .18s transform, .18s background;
+      width: 100%;
+    }
+
+    button:hover {
+      background: var(--accent-d);
+      transform: translateY(-1px)
+    }
+
+    button:disabled {
+      opacity: .45;
+      cursor: default;
+      transform: none
+    }
+
+    pre {
+      background: #0f1722;
+      border: 1px solid #283141;
+      color: #e2e8f0;
+      padding: .9rem;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin: 0;
+    }
+
+    .out {
+      margin-top: 1rem;
+      animation: fade .35s ease
+    }
+
+    @keyframes fade {
+      from {
+        opacity: 0;
+        transform: translateY(4px)
+      }
+
+      to {
+        opacity: 1
+      }
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 1.1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #272e38;
+      padding: .7rem 1.4rem;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      font-size: .9rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s ease;
+    }
+
+    .toast.show {
+      opacity: 1
+    }
+
+    /* JELLYFIN: Server Type Selection Cards - Commented out for future Jellyfin support
 .server-selection {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -530,303 +775,303 @@ pre{
 }
 */
 
-iframe.floatingchat-container,
-iframe[id*="kofi-wo-container"] {
-  width: 180px !important;      /* Match button's max width */
-  height: 46px !important;      /* Match button's height */
-  border-radius: 100px !important; /* Make pill-shaped like button */
-  overflow: hidden;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-</style>
+    iframe.floatingchat-container,
+    iframe[id*="kofi-wo-container"] {
+      width: 180px !important;
+      /* Match button's max width */
+      height: 46px !important;
+      /* Match button's height */
+      border-radius: 100px !important;
+      /* Make pill-shaped like button */
+      overflow: hidden;
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+  </style>
 </head>
+
 <body>
 
-<div class="panel">
-  <h1>StreamBridge Setup</h1>
-  <p style="text-align:center;margin-top:0.5rem;font-size:.8rem;color:var(--text-dim)">
-    Stream from your Emby server to Stremio<br>
-    Need help? See <a href="https://github.com/h4harsimran/streambridge" target="_blank">docs on GitHub</a>.
-  </p>
-  
-  <hr class="section-divider">
-  <!--  1· Helper  -->
-  <h2>1 · Fetch User ID & Token</h2>
-  <div class="form-group">
-    <form id="helper">
-      <div class="field-group">
-        <label>Server URL</label>
-        <input name="url" placeholder="http://example.com:8096 or https://..." required>
-      </div>
-      <div class="field-group">
-        <label>Server Username</label>
-        <input name="user" placeholder="Your server username" required>
-      </div>
-      <div class="field-group">
-        <label>Server Password</label>
-        <input name="pass" type="password" placeholder="Your server password">
-      </div>
-      <button id="helperBtn">Get Access Info</button>
-    </form>
-  </div>
+  <div class="panel">
+    <div style="display:flex;justify-content:center;margin-bottom:0.85rem;">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="64" height="64" style="border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,0.35);">
+        <!-- Canvas Baseplate -->
+        <rect width="512" height="512" rx="112" fill="#0A0B10"/>
+        <rect x="2" y="2" width="508" height="508" rx="110" fill="none" stroke="#161822" stroke-width="4"/>
 
-  <div id="helperOut" class="out form-output" style="display:none">
-    <small>User ID</small><pre id="uid"></pre>
-    <small style="margin-top:.6rem;display:block">Access Token</small><pre id="tok"></pre>
-  </div>
+        <!-- Left / Ingress Chevron (Emby Green) -->
+        <path d="M 148 160 L 244 256 L 148 352" 
+              fill="none" 
+              stroke="#10B981" 
+              stroke-width="48" 
+              stroke-linecap="round" 
+              stroke-linejoin="round"/>
 
-  <!--  2· Configure  -->
-  <hr class="section-divider">
-  <h2>2 · Generate Install Link</h2>
-  <form id="cfg">
-    <div class="form-group">
-      <!-- Hidden input to store server type from selection -->
-      <input type="hidden" name="serverType" id="cfgServerType" value="emby">
-      <div class="field-group">
-        <label>Server URL</label>
-        <input name="serverUrl" required>
-      </div>
-      <div class="field-group">
-        <label>User ID</label>
-        <input name="userId" required>
-      </div>
-      <div class="field-group">
-        <label>Access Token / API Key</label>
-        <input name="accessToken" required>
-      </div>
+        <!-- Right / Egress Chevron (Stremio Violet) -->
+        <path d="M 268 160 L 364 256 L 268 352" 
+              fill="none" 
+              stroke="#8B5CF6" 
+              stroke-width="48" 
+              stroke-linecap="round" 
+              stroke-linejoin="round"/>
+      </svg>
     </div>
-    
-    <!-- Advanced Options Section -->
-    <details class="adv-accordion" open>
-      <summary class="adv-summary">
-        <div class="adv-summary-left">
-          <div class="adv-icon">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="4" y1="21" x2="4" y2="14"></line>
-              <line x1="4" y1="10" x2="4" y2="3"></line>
-              <line x1="12" y1="21" x2="12" y2="12"></line>
-              <line x1="12" y1="8" x2="12" y2="3"></line>
-              <line x1="20" y1="21" x2="20" y2="16"></line>
-              <line x1="20" y1="12" x2="20" y2="3"></line>
-              <line x1="1" y1="14" x2="7" y2="14"></line>
-              <line x1="9" y1="8" x2="15" y2="8"></line>
-              <line x1="17" y1="16" x2="23" y2="16"></line>
-            </svg>
-          </div>
-          <div>
-            <div class="adv-title">Advanced Options</div>
-            <div class="adv-subtitle">Display settings, stream filters & Emby sync</div>
-          </div>
-        </div>
-        <div class="adv-badge">
-          <span>Customize</span>
-          <span class="adv-chevron">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </span>
-        </div>
-      </summary>
+    <h1>StreamBridge Setup</h1>
+    <p style="text-align:center;margin-top:0.5rem;font-size:.8rem;color:var(--text-dim)">
+      Stream from your Emby server to Stremio<br>
+      Need help? See <a href="https://github.com/h4harsimran/streambridge" target="_blank">docs on GitHub</a>.
+    </p>
 
-      <div class="adv-content">
-        <!-- Card 1: Streams & Display Settings -->
-        <div class="opt-card">
-          <div class="opt-card-header">
-            <div class="opt-card-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="3" width="20" height="14" rx="2"></rect>
-                <line x1="8" y1="21" x2="16" y2="21"></line>
-                <line x1="12" y1="17" x2="12" y2="21"></line>
+    <hr class="section-divider">
+    <!--  1· Helper  -->
+    <h2>1 · Fetch User ID & Token</h2>
+    <div class="form-group">
+      <form id="helper">
+        <div class="field-group">
+          <label>Server URL</label>
+          <input name="url" placeholder="http://example.com:8096 or https://..." required>
+        </div>
+        <div class="field-group">
+          <label>Server Username</label>
+          <input name="user" placeholder="Your server username" required>
+        </div>
+        <div class="field-group">
+          <label>Server Password</label>
+          <input name="pass" type="password" placeholder="Your server password">
+        </div>
+        <button id="helperBtn">Get Access Info</button>
+      </form>
+    </div>
+
+    <div id="helperOut" class="out form-output" style="display:none">
+      <small>User ID</small>
+      <pre id="uid"></pre>
+      <small style="margin-top:.6rem;display:block">Access Token</small>
+      <pre id="tok"></pre>
+    </div>
+
+    <!--  2· Configure  -->
+    <hr class="section-divider">
+    <h2>2 · Generate Install Link</h2>
+    <form id="cfg">
+      <div class="form-group">
+        <!-- Hidden input to store server type from selection -->
+        <input type="hidden" name="serverType" id="cfgServerType" value="emby">
+        <div class="field-group">
+          <label>Server URL</label>
+          <input name="serverUrl" required>
+        </div>
+        <div class="field-group">
+          <label>User ID</label>
+          <input name="userId" required>
+        </div>
+        <div class="field-group">
+          <label>Access Token / API Key</label>
+          <input name="accessToken" required>
+        </div>
+      </div>
+
+      <!-- Advanced Options Section -->
+      <details class="adv-accordion" open>
+        <summary class="adv-summary">
+          <div class="adv-summary-left">
+            <div class="adv-icon">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" y1="21" x2="4" y2="14"></line>
+                <line x1="4" y1="10" x2="4" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12" y2="3"></line>
+                <line x1="20" y1="21" x2="20" y2="16"></line>
+                <line x1="20" y1="12" x2="20" y2="3"></line>
+                <line x1="1" y1="14" x2="7" y2="14"></line>
+                <line x1="9" y1="8" x2="15" y2="8"></line>
+                <line x1="17" y1="16" x2="23" y2="16"></line>
               </svg>
             </div>
             <div>
-              <div class="opt-card-title">Streams & Display</div>
-              <div class="opt-card-sub">Customize stream titles, subtitles, and quality filters</div>
+              <div class="adv-title">Advanced Options</div>
+              <div class="adv-subtitle">Display settings, stream filters & Emby sync</div>
             </div>
           </div>
-          
-          <div class="opt-card-body">
-            <div class="field-group" style="margin-bottom:0.75rem;">
-              <label class="description-after">Stream Name</label>
-              <small id="streamNameHint">Custom display name in Stremio stream list (default: "Emby")</small>
-              <input name="streamName" id="streamNameInput" placeholder="Emby" value="">
-            </div>
+          <div class="adv-badge">
+            <span>Customize</span>
+            <span class="adv-chevron">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </span>
+          </div>
+        </summary>
 
-            <div class="field-group" style="margin-bottom:0.75rem;">
-              <label class="description-after">Exclude Stream Qualities</label>
-              <small>Tap qualities to exclude them from Stremio search results</small>
-              <div class="chip-group">
-                <label class="chip-item">
-                  <input type="checkbox" name="hideStreamTypes" value="4K">
-                  <span>4K</span>
-                </label>
-                <label class="chip-item">
-                  <input type="checkbox" name="hideStreamTypes" value="1080p">
-                  <span>1080p</span>
-                </label>
-                <label class="chip-item">
-                  <input type="checkbox" name="hideStreamTypes" value="DV">
-                  <span>Dolby Vision</span>
-                </label>
-                <label class="chip-item">
-                  <input type="checkbox" name="hideStreamTypes" value="HDR">
-                  <span>All HDR</span>
-                </label>
+        <div class="adv-content">
+          <!-- Card 1: Streams & Display Settings -->
+          <div class="opt-card">
+            <div class="opt-card-header">
+              <div class="opt-card-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+                  <line x1="8" y1="21" x2="16" y2="21"></line>
+                  <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+              </div>
+              <div>
+                <div class="opt-card-title">Streams & Display</div>
+                <div class="opt-card-sub">Customize stream titles, subtitles, and quality filters</div>
               </div>
             </div>
 
-            <div class="switch-list">
-              <label class="switch-item">
-                <div class="switch-info">
-                  <span class="switch-title">Include server subtitles</span>
-                  <span class="switch-desc">Deliver subtitles directly from your Emby server to Stremio</span>
-                </div>
-                <div class="switch-ui">
-                  <input type="checkbox" name="includeSubtitles" id="includeSubtitles" checked>
-                  <span class="switch-track"></span>
-                </div>
-              </label>
+            <div class="opt-card-body">
+              <div class="field-group" style="margin-bottom:0.75rem;">
+                <label class="description-after">Stream Name</label>
+                <small id="streamNameHint">Custom display name in Stremio stream list (default: "Emby")</small>
+                <input name="streamName" id="streamNameInput" placeholder="Emby" value="">
+              </div>
 
-              <label class="switch-item">
-                <div class="switch-info">
-                  <span class="switch-title">Show server name in addon title</span>
-                  <span class="switch-desc">Appends your server name (useful if running multiple instances)</span>
+              <div class="field-group" style="margin-bottom:0.75rem;">
+                <label class="description-after">Exclude Stream Qualities</label>
+                <small>Tap qualities to exclude them from Stremio search results</small>
+                <div class="chip-group">
+                  <label class="chip-item">
+                    <input type="checkbox" name="hideStreamTypes" value="4K">
+                    <span>4K</span>
+                  </label>
+                  <label class="chip-item">
+                    <input type="checkbox" name="hideStreamTypes" value="1080p">
+                    <span>1080p</span>
+                  </label>
+                  <label class="chip-item">
+                    <input type="checkbox" name="hideStreamTypes" value="DV">
+                    <span>Dolby Vision</span>
+                  </label>
+                  <label class="chip-item">
+                    <input type="checkbox" name="hideStreamTypes" value="HDR">
+                    <span>All HDR</span>
+                  </label>
                 </div>
-                <div class="switch-ui">
-                  <input type="checkbox" name="showServerName">
-                  <span class="switch-track"></span>
-                </div>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <!-- Card 2: Emby Synchronization Engine -->
-        <div class="opt-card">
-          <div class="opt-card-header">
-            <div class="opt-card-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="23 4 23 10 17 10"></polyline>
-                <polyline points="1 20 1 14 7 14"></polyline>
-                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-              </svg>
-            </div>
-            <div>
-              <div class="opt-card-title">Emby Server Synchronization</div>
-              <div class="opt-card-sub">Control how Stremio sends playback and watchlist events to Emby</div>
-            </div>
-          </div>
-          
-          <div class="opt-card-body">
-            <!-- Group 1: While Streaming -->
-            <div class="sync-box">
-              <div class="sync-box-header">
-                <span class="sync-badge">While Streaming</span>
-                <span class="sync-box-title">Playback & Watch Progress</span>
-                <span class="sync-box-sub">Updates Emby in real-time as you stream in Stremio</span>
               </div>
 
               <div class="switch-list">
                 <label class="switch-item">
                   <div class="switch-info">
-                    <span class="switch-title">Sync playback progress & resume points</span>
-                    <span class="switch-desc">Reports active sessions to your Emby dashboard and saves resume points</span>
+                    <span class="switch-title">Include server subtitles</span>
+                    <span class="switch-desc">Deliver subtitles directly from your Emby server to Stremio</span>
                   </div>
                   <div class="switch-ui">
-                    <input type="checkbox" name="syncPlayback" id="syncPlayback" checked>
+                    <input type="checkbox" name="includeSubtitles" id="includeSubtitles" checked>
                     <span class="switch-track"></span>
                   </div>
                 </label>
 
                 <label class="switch-item">
                   <div class="switch-info">
-                    <span class="switch-title">Auto-mark as watched</span>
-                    <span class="switch-desc">Marks videos as completed in Emby when watched past 90% in Stremio</span>
+                    <span class="switch-title">Show server name in addon title</span>
+                    <span class="switch-desc">Appends your server name (useful if running multiple instances)</span>
                   </div>
                   <div class="switch-ui">
-                    <input type="checkbox" name="syncWatched" id="syncWatched" checked>
+                    <input type="checkbox" name="showServerName">
                     <span class="switch-track"></span>
                   </div>
                 </label>
               </div>
             </div>
+          </div>
 
-            <!-- Group 2: Library Bookmarks -->
-            <div class="sync-box">
-              <div class="sync-box-header">
-                <span class="sync-badge">Library Bookmarks</span>
-                <span class="sync-box-title">When Saving Titles to Stremio Library</span>
-                <span class="sync-box-sub">What happens in Emby when you click "Add to Library" (bookmark icon)</span>
+          <!-- Card 2: Emby Synchronization Engine -->
+          <div class="opt-card">
+            <div class="opt-card-header">
+              <div class="opt-card-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <polyline points="1 20 1 14 7 14"></polyline>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
               </div>
-
-              <div class="switch-list">
-                <!-- Favorites Toggle -->
-                <label class="switch-item">
-                  <div class="switch-info">
-                    <span class="switch-title" style="display:flex;align-items:center;gap:0.45rem;">
-                      <span>Add to Emby Favorites</span>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="color:#ef4444;opacity:0.9;">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                      </svg>
-                    </span>
-                    <span class="switch-desc">Items show up directly in Emby's Home Screen Favorites row</span>
-                  </div>
-                  <div class="switch-ui">
-                    <input type="checkbox" name="syncFavorites" id="syncFavorites">
-                    <span class="switch-track"></span>
-                  </div>
-                </label>
-
-                <!-- Playlists Toggle -->
-                <label class="switch-item">
-                  <div class="switch-info">
-                    <span class="switch-title" style="display:flex;align-items:center;gap:0.45rem;">
-                      <span>Add to Emby Playlists</span>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-dim);">
-                        <line x1="8" y1="6" x2="21" y2="6"></line>
-                        <line x1="8" y1="12" x2="21" y2="12"></line>
-                        <line x1="8" y1="18" x2="21" y2="18"></line>
-                        <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                        <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                        <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                      </svg>
-                    </span>
-                    <span class="switch-desc">Save bookmarked movies and shows into playlists on your server</span>
-                  </div>
-                  <div class="switch-ui">
-                    <input type="checkbox" name="syncPlaylist" id="syncPlaylist">
-                    <span class="switch-track"></span>
-                  </div>
-                </label>
+              <div>
+                <div class="opt-card-title">Emby Server Synchronization</div>
+                <div class="opt-card-sub">Control how Stremio sends playback and watchlist events to Emby</div>
               </div>
+            </div>
 
-              <!-- Nested Playlist Configuration -->
-              <div id="playlistCard" class="sub-panel" style="display:none;">
-                <div style="font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:0.6rem;letter-spacing:0.02em;">PLAYLIST DESTINATION</div>
-                
-                <div class="radio-tiles">
-                  <label class="radio-tile">
-                    <input type="radio" name="playlistMode" value="separate" checked id="modeSeparate">
-                    <div class="radio-tile-content">
-                      <div class="radio-tile-title" style="display:flex;align-items:center;gap:0.4rem;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);">
-                          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-                          <line x1="12" y1="11" x2="12" y2="17"></line>
-                          <line x1="9" y1="14" x2="15" y2="14"></line>
-                        </svg>
-                        <span>Auto-Create Playlists</span>
-                      </div>
-                      <div class="radio-tile-desc">Creates dedicated playlists for movies and TV shows</div>
+            <div class="opt-card-body">
+              <!-- Group 1: While Streaming -->
+              <div class="sync-box">
+                <div class="sync-box-header">
+                  <span class="sync-badge">While Streaming</span>
+                  <span class="sync-box-title">Playback & Watch Progress</span>
+                  <span class="sync-box-sub">Updates Emby in real-time as you stream in Stremio (one way only from
+                    Stremio to Emby)</span>
+                </div>
+
+                <div class="switch-list">
+                  <label class="switch-item">
+                    <div class="switch-info">
+                      <span class="switch-title">Sync playback progress & resume points</span>
+                      <span class="switch-desc">Sync currently watching items to your Emby server and saves resume
+                        points</span>
+                    </div>
+                    <div class="switch-ui">
+                      <input type="checkbox" name="syncPlayback" id="syncPlayback" checked>
+                      <span class="switch-track"></span>
                     </div>
                   </label>
 
-                  <label class="radio-tile">
-                    <input type="radio" name="playlistMode" value="existing" id="modeExisting">
-                    <div class="radio-tile-content">
-                      <div class="radio-tile-title" style="display:flex;align-items:center;gap:0.4rem;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-dim);">
+                  <label class="switch-item">
+                    <div class="switch-info">
+                      <span class="switch-title">Sync Watched status</span>
+                      <span class="switch-desc">Marks videos as completed in Emby when watched past 90% or when
+                        manually marked as watched/unwatched in Stremio</span>
+                    </div>
+                    <div class="switch-ui">
+                      <input type="checkbox" name="syncWatched" id="syncWatched" checked>
+                      <span class="switch-track"></span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Group 2: Library Bookmarks -->
+              <div class="sync-box">
+                <div class="sync-box-header">
+                  <span class="sync-badge">Library Bookmarks</span>
+                  <span class="sync-box-title">Stremio Library Actions</span>
+                  <span class="sync-box-sub">What happens in Emby when you click "Add to Library" in Stremio. Choose one
+                    or both options below</span>
+                </div>
+
+                <div class="switch-list">
+                  <!-- Favorites Toggle -->
+                  <label class="switch-item">
+                    <div class="switch-info">
+                      <span class="switch-title" style="display:flex;align-items:center;gap:0.45rem;">
+                        <span>Add to Emby Favorites</span>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none"
+                          style="color:#ef4444;opacity:0.9;">
+                          <path
+                            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z">
+                          </path>
+                        </svg>
+                      </span>
+                      <span class="switch-desc">Items show up directly in Emby's Home Screen Favorites row</span>
+                    </div>
+                    <div class="switch-ui">
+                      <input type="checkbox" name="syncFavorites" id="syncFavorites">
+                      <span class="switch-track"></span>
+                    </div>
+                  </label>
+
+                  <!-- Playlists Toggle -->
+                  <label class="switch-item">
+                    <div class="switch-info">
+                      <span class="switch-title" style="display:flex;align-items:center;gap:0.45rem;">
+                        <span>Add to Emby Playlists</span>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                          style="color:var(--text-dim);">
                           <line x1="8" y1="6" x2="21" y2="6"></line>
                           <line x1="8" y1="12" x2="21" y2="12"></line>
                           <line x1="8" y1="18" x2="21" y2="18"></line>
@@ -834,529 +1079,587 @@ iframe[id*="kofi-wo-container"] {
                           <line x1="3" y1="12" x2="3.01" y2="12"></line>
                           <line x1="3" y1="18" x2="3.01" y2="18"></line>
                         </svg>
-                        <span>Existing Playlists</span>
-                      </div>
-                      <div class="radio-tile-desc">Select from playlists already created on your server</div>
+                      </span>
+                      <span class="switch-desc">Save bookmarked movies and shows into playlists on your server</span>
+                    </div>
+                    <div class="switch-ui">
+                      <input type="checkbox" name="syncPlaylist" id="syncPlaylist">
+                      <span class="switch-track"></span>
                     </div>
                   </label>
                 </div>
 
-                <!-- Mode 1: Separate Playlists -->
-                <div id="separatePlaylistPanel" style="display:flex;flex-direction:column;gap:0.75rem;margin-top:0.85rem;">
-                  <div class="field-subgroup">
-                    <label>Movies Playlist Name</label>
-                    <input name="moviePlaylistName" id="moviePlaylistName" value="Stremio Movies" placeholder="Stremio Movies">
-                  </div>
-                  <div class="field-subgroup">
-                    <label>TV Shows Playlist Name</label>
-                    <input name="seriesPlaylistName" id="seriesPlaylistName" value="Stremio Shows" placeholder="Stremio Shows">
-                  </div>
-                  <small style="color:var(--text-dim);font-size:0.76rem;">Playlists will be created automatically on your Emby server if they don't exist.</small>
-                </div>
+                <!-- Nested Playlist Configuration -->
+                <div id="playlistCard" class="sub-panel" style="display:none;">
+                  <div
+                    style="font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:0.6rem;letter-spacing:0.02em;">
+                    PLAYLIST DESTINATION</div>
 
-                <!-- Mode 2: Existing Playlists -->
-                <div id="existingPlaylistPanel" style="display:none;flex-direction:column;gap:0.75rem;margin-top:0.85rem;">
-                  <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <small id="existingPlaylistStatus" style="color:var(--text-dim);font-size:0.8rem;">Select playlists from your server:</small>
-                    <button type="button" id="refreshPlaylistsBtn" class="mini-btn" style="display:inline-flex;align-items:center;gap:0.3rem;">
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="23 4 23 10 17 10"></polyline>
-                        <polyline points="1 20 1 14 7 14"></polyline>
-                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                      </svg>
-                      <span>Refresh</span>
-                    </button>
+                  <div class="radio-tiles">
+                    <label class="radio-tile">
+                      <input type="radio" name="playlistMode" value="separate" checked id="modeSeparate">
+                      <div class="radio-tile-content">
+                        <div class="radio-tile-title" style="display:flex;align-items:center;gap:0.4rem;">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            style="color:var(--accent);">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z">
+                            </path>
+                            <line x1="12" y1="11" x2="12" y2="17"></line>
+                            <line x1="9" y1="14" x2="15" y2="14"></line>
+                          </svg>
+                          <span>Auto-Create Playlists</span>
+                        </div>
+                        <div class="radio-tile-desc">Creates dedicated playlists for movies and TV shows</div>
+                      </div>
+                    </label>
+
+                    <label class="radio-tile">
+                      <input type="radio" name="playlistMode" value="existing" id="modeExisting">
+                      <div class="radio-tile-content">
+                        <div class="radio-tile-title" style="display:flex;align-items:center;gap:0.4rem;">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            style="color:var(--text-dim);">
+                            <line x1="8" y1="6" x2="21" y2="6"></line>
+                            <line x1="8" y1="12" x2="21" y2="12"></line>
+                            <line x1="8" y1="18" x2="21" y2="18"></line>
+                            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                          </svg>
+                          <span>Existing Playlists</span>
+                        </div>
+                        <div class="radio-tile-desc">Select from playlists already created on your server</div>
+                      </div>
+                    </label>
                   </div>
-                  <div class="field-subgroup">
-                    <label>Movies Playlist</label>
-                    <select name="moviePlaylistId" id="moviePlaylistId">
-                      <option value="">-- None (Do not sync movies) --</option>
-                    </select>
+
+                  <!-- Mode 1: Separate Playlists -->
+                  <div id="separatePlaylistPanel"
+                    style="display:flex;flex-direction:column;gap:0.75rem;margin-top:0.85rem;">
+                    <div class="field-subgroup">
+                      <label>Movies Playlist Name</label>
+                      <input name="moviePlaylistName" id="moviePlaylistName" value="Stremio Movies"
+                        placeholder="Stremio Movies">
+                    </div>
+                    <div class="field-subgroup">
+                      <label>TV Shows Playlist Name</label>
+                      <input name="seriesPlaylistName" id="seriesPlaylistName" value="Stremio Shows"
+                        placeholder="Stremio Shows">
+                    </div>
+                    <small style="color:var(--text-dim);font-size:0.76rem;">Playlists will be created automatically on
+                      your Emby server if they don't exist.</small>
                   </div>
-                  <div class="field-subgroup">
-                    <label>TV Shows Playlist</label>
-                    <select name="seriesPlaylistId" id="seriesPlaylistId">
-                      <option value="">-- None (Do not sync TV shows) --</option>
-                    </select>
+
+                  <!-- Mode 2: Existing Playlists -->
+                  <div id="existingPlaylistPanel"
+                    style="display:none;flex-direction:column;gap:0.75rem;margin-top:0.85rem;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                      <small id="existingPlaylistStatus" style="color:var(--text-dim);font-size:0.8rem;">Select
+                        playlists from your server:</small>
+                      <button type="button" id="refreshPlaylistsBtn" class="mini-btn"
+                        style="display:inline-flex;align-items:center;gap:0.3rem;">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="23 4 23 10 17 10"></polyline>
+                          <polyline points="1 20 1 14 7 14"></polyline>
+                          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                        <span>Refresh</span>
+                      </button>
+                    </div>
+                    <div class="field-subgroup">
+                      <label>Movies Playlist</label>
+                      <select name="moviePlaylistId" id="moviePlaylistId">
+                        <option value="">-- None (Do not sync movies) --</option>
+                      </select>
+                    </div>
+                    <div class="field-subgroup">
+                      <label>TV Shows Playlist</label>
+                      <select name="seriesPlaylistId" id="seriesPlaylistId">
+                        <option value="">-- None (Do not sync TV shows) --</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </details>
-    
-    <button id="cfgBtn" style="margin-top:1rem">Create & Install Addon</button>
-  </form>
+      </details>
 
-  <div id="cfgOut" class="out form-output"></div>
+      <button id="cfgBtn" style="margin-top:1rem">Create & Install Addon</button>
+    </form>
 
-</div>
+    <div id="cfgOut" class="out form-output"></div>
 
-<!-- ---------- Toast ---------- -->
-<div id="toast" class="toast">Copied!</div>
+  </div>
 
-<!-- ----------  Scripts  ---------- -->
-<script>
-const $ = sel=>document.querySelector(sel);
-const toast = msg =>{
-  const t=$("#toast");t.textContent=msg;t.classList.add("show");
-  setTimeout(()=>t.classList.remove("show"),2200);
-};
+  <!-- ---------- Toast ---------- -->
+  <div id="toast" class="toast">Copied!</div>
 
-// Function to sync server type throughout the form (defaults to Emby)
-function syncServerType(serverType) {
-  // Always default to Emby
-  const serverTypeToUse = "emby";
-  const cfgServerType = $("#cfgServerType");
-  const streamNameInput = $("#streamNameInput");
-  const streamNameHint = $("#streamNameHint");
-  
-  // JELLYFIN: Card selection logic commented out for future Jellyfin support
-  // const embyCard = $("#serverCardEmby");
-  // const jellyfinCard = $("#serverCardJellyfin");
-  
-  // Update hidden input
-  if (cfgServerType) {
-    cfgServerType.value = serverTypeToUse;
-  }
-  
-  // JELLYFIN: Card selection visual state update commented out
-  // if (embyCard && jellyfinCard) {
-  //   if (serverType === "jellyfin") {
-  //     embyCard.classList.remove("selected");
-  //     jellyfinCard.classList.add("selected");
-  //   } else {
-  //     embyCard.classList.add("selected");
-  //     jellyfinCard.classList.remove("selected");
-  //   }
-  // }
-  
-  // Update stream name placeholder and hint (always Emby)
-  if (streamNameInput && streamNameHint) {
-    const defaultName = "Emby";
-    const currentValue = streamNameInput.value.trim();
-    
-    // Update placeholder
-    streamNameInput.placeholder = defaultName;
-    
-    // Only auto-update the value if it's empty or matches the old default
-    // Don't overwrite custom values
-    if (!currentValue || currentValue === "Emby" || currentValue === "Jellyfin") {
-      // Only clear if it was the opposite default
-      // If empty, leave it empty so user can see the placeholder
-      if (currentValue && currentValue !== defaultName) {
-        streamNameInput.value = "";
+  <!-- ----------  Scripts  ---------- -->
+  <script>
+    const $ = sel => document.querySelector(sel);
+    const toast = msg => {
+      const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2200);
+    };
+
+    // Function to sync server type throughout the form (defaults to Emby)
+    function syncServerType(serverType) {
+      // Always default to Emby
+      const serverTypeToUse = "emby";
+      const cfgServerType = $("#cfgServerType");
+      const streamNameInput = $("#streamNameInput");
+      const streamNameHint = $("#streamNameHint");
+
+      // JELLYFIN: Card selection logic commented out for future Jellyfin support
+      // const embyCard = $("#serverCardEmby");
+      // const jellyfinCard = $("#serverCardJellyfin");
+
+      // Update hidden input
+      if (cfgServerType) {
+        cfgServerType.value = serverTypeToUse;
+      }
+
+      // JELLYFIN: Card selection visual state update commented out
+      // if (embyCard && jellyfinCard) {
+      //   if (serverType === "jellyfin") {
+      //     embyCard.classList.remove("selected");
+      //     jellyfinCard.classList.add("selected");
+      //   } else {
+      //     embyCard.classList.add("selected");
+      //     jellyfinCard.classList.remove("selected");
+      //   }
+      // }
+
+      // Update stream name placeholder and hint (always Emby)
+      if (streamNameInput && streamNameHint) {
+        const defaultName = "Emby";
+        const currentValue = streamNameInput.value.trim();
+
+        // Update placeholder
+        streamNameInput.placeholder = defaultName;
+
+        // Only auto-update the value if it's empty or matches the old default
+        // Don't overwrite custom values
+        if (!currentValue || currentValue === "Emby" || currentValue === "Jellyfin") {
+          // Only clear if it was the opposite default
+          // If empty, leave it empty so user can see the placeholder
+          if (currentValue && currentValue !== defaultName) {
+            streamNameInput.value = "";
+          }
+        }
+
+        streamNameHint.textContent = `Custom name for streams (defaults to "${defaultName}")`;
       }
     }
-    
-    streamNameHint.textContent = `Custom name for streams (defaults to "${defaultName}")`;
-  }
-}
 
-// JELLYFIN: Server card selection handlers commented out for future Jellyfin support
-// const embyCardEl = $("#serverCardEmby");
-// const jellyfinCardEl = $("#serverCardJellyfin");
-// 
-// if (embyCardEl) {
-//   embyCardEl.addEventListener("click", ()=>{
-//     syncServerType("emby");
-//   });
-// }
-// if (jellyfinCardEl) {
-//   jellyfinCardEl.addEventListener("click", ()=>{
-//     syncServerType("jellyfin");
-//   });
-// }
+    // JELLYFIN: Server card selection handlers commented out for future Jellyfin support
+    // const embyCardEl = $("#serverCardEmby");
+    // const jellyfinCardEl = $("#serverCardJellyfin");
+    // 
+    // if (embyCardEl) {
+    //   embyCardEl.addEventListener("click", ()=>{
+    //     syncServerType("emby");
+    //   });
+    // }
+    // if (jellyfinCardEl) {
+    //   jellyfinCardEl.addEventListener("click", ()=>{
+    //     syncServerType("jellyfin");
+    //   });
+    // }
 
-// Initialize server type on page load (default to Emby)
-syncServerType("emby");
+    // Initialize server type on page load (default to Emby)
+    syncServerType("emby");
 
-/*── 2 · Helper ──*/
-async function authenticateEmby(serverUrl, username, password) {
-  const res = await fetch("/api/get-emby-tokens", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      serverUrl: serverUrl,
-      username: username,
-      password: password || ""
-    })
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.err || `HTTP ${res.status}`);
-  }
-  return {
-    User: { Id: data.Id },
-    AccessToken: data.AccessToken,
-    ServerId: data.ServerId
-  };
-}
-
-// JELLYFIN: Jellyfin authentication function - Commented out for future Jellyfin support
-// async function authenticateJellyfin(url, user, pass) {
-//   try {
-//     const res = await fetch(`${url}/Users/authenticatebyname`, {
-//       method: "POST",
-//       headers: {
-//         "Content-Type": "application/json",
-//         "Accept": "application/json",
-//         "Authorization":
-//           'MediaBrowser Client="StreamBridge", Device="WebHelper", DeviceId="webhelper", Version="1.2.0"'
-//       },
-//       body: JSON.stringify({ Username: user, Pw: pass || "" })
-//     });
-//     
-//     if (!res.ok) {
-//       let errorMessage = "Authentication failed";
-//       try {
-//         const errorData = await res.json();
-//         errorMessage = errorData.Message || errorData.message || `HTTP ${res.status}: ${res.statusText}`;
-//       } catch {
-//         errorMessage = `HTTP ${res.status}: ${res.statusText}`;
-//       }
-//       throw new Error(errorMessage);
-//     }
-//     
-//     const data = await res.json();
-//     return data;
-//   } catch (err) {
-//     // Re-throw with better context if it's not already our error
-//     if (err.message && !err.message.includes("HTTP") && !err.message.includes("Authentication")) {
-//       throw new Error(`Network error: ${err.message}`);
-//     }
-//     throw err;
-//   }
-// }
-
-$("#helper").addEventListener("submit", async e=>{
-  e.preventDefault();
-  const f=new FormData(e.target),
-        urlRaw=f.get("url"),
-        user=f.get("user"),
-        pass=f.get("pass");
-  const btn=$("#helperBtn");
-  btn.disabled=true;btn.textContent="Fetching…";
-
-  // Validate and normalize URL
-  if(!urlRaw || !urlRaw.trim()) {
-    alert("Please enter a server URL.");
-    btn.disabled=false;btn.textContent="Get Access Info";
-    return;
-  }
-  
-  const url = urlRaw.trim().replace(/\/+$/,"");
-  if (!url.startsWith("http://") && !url.startsWith("https://")) {
-    alert("URL must start with http:// or https://");
-    btn.disabled=false;btn.textContent="Get Access Info";
-    return;
-  }
-
-  // Basic URL format validation
-  try {
-    new URL(url);
-  } catch {
-    alert("Please enter a valid URL (e.g., https://example.com:8096)");
-    btn.disabled=false;btn.textContent="Get Access Info";
-    return;
-  }
-
-  // Always use Emby (Jellyfin support commented out for future)
-  const serverType = "emby";
-
-  try{
-    // JELLYFIN: Always use Emby authentication - Jellyfin support commented out
-    // const data = serverType === "jellyfin" 
-    //   ? await authenticateJellyfin(url, user, pass)
-    //   : await authenticateEmby(url, user, pass);
-    const data = await authenticateEmby(url, user, pass);
-
-    $("#uid").textContent = data?.User?.Id || "";
-    $("#tok").textContent = data?.AccessToken || "";
-    $("#helperOut").style.display="block";
-
-    /* autofill config form */
-    const cf=$("#cfg");
-    // Sync server type to Step 2
-    syncServerType(serverType);
-    // Autofill form fields
-    cf.serverUrl.value   ||= url;
-    cf.userId.value      ||= data?.User?.Id||"";
-    cf.accessToken.value ||= data?.AccessToken||"";
-  }catch(err){
-    alert(err.message);
-  }finally{
-    btn.disabled=false;btn.textContent="Get Access Info";
-  }
-});
-
-/*── Playlist UI Handlers ──*/
-const syncPlaylistCb = $("#syncPlaylist");
-const playlistCard = $("#playlistCard");
-const modeSeparate = $("#modeSeparate");
-const modeExisting = $("#modeExisting");
-const separatePanel = $("#separatePlaylistPanel");
-const existingPanel = $("#existingPlaylistPanel");
-const refreshPlaylistsBtn = $("#refreshPlaylistsBtn");
-const existingStatus = $("#existingPlaylistStatus");
-const movieSelect = $("#moviePlaylistId");
-const seriesSelect = $("#seriesPlaylistId");
-
-function updatePlaylistPanels() {
-  if (syncPlaylistCb.checked) {
-    playlistCard.style.display = "block";
-    if (modeExisting.checked) {
-      separatePanel.style.display = "none";
-      existingPanel.style.display = "flex";
-    } else {
-      separatePanel.style.display = "flex";
-      existingPanel.style.display = "none";
+    /*── 2 · Helper ──*/
+    async function authenticateEmby(serverUrl, username, password) {
+      const res = await fetch("/api/get-emby-tokens", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          serverUrl: serverUrl,
+          username: username,
+          password: password || ""
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.err || `HTTP ${res.status}`);
+      }
+      return {
+        User: { Id: data.Id },
+        AccessToken: data.AccessToken,
+        ServerId: data.ServerId
+      };
     }
-  } else {
-    playlistCard.style.display = "none";
-  }
-}
 
-syncPlaylistCb.addEventListener("change", updatePlaylistPanels);
-modeSeparate.addEventListener("change", updatePlaylistPanels);
-modeExisting.addEventListener("change", () => {
-  updatePlaylistPanels();
-  loadPlaylistsFromServer();
-});
-refreshPlaylistsBtn.addEventListener("click", () => loadPlaylistsFromServer(true));
+    // JELLYFIN: Jellyfin authentication function - Commented out for future Jellyfin support
+    // async function authenticateJellyfin(url, user, pass) {
+    //   try {
+    //     const res = await fetch(`${url}/Users/authenticatebyname`, {
+    //       method: "POST",
+    //       headers: {
+    //         "Content-Type": "application/json",
+    //         "Accept": "application/json",
+    //         "Authorization":
+    //           'MediaBrowser Client="StreamBridge", Device="WebHelper", DeviceId="webhelper", Version="1.2.0"'
+    //       },
+    //       body: JSON.stringify({ Username: user, Pw: pass || "" })
+    //     });
+    //     
+    //     if (!res.ok) {
+    //       let errorMessage = "Authentication failed";
+    //       try {
+    //         const errorData = await res.json();
+    //         errorMessage = errorData.Message || errorData.message || `HTTP ${res.status}: ${res.statusText}`;
+    //       } catch {
+    //         errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+    //       }
+    //       throw new Error(errorMessage);
+    //     }
+    //     
+    //     const data = await res.json();
+    //     return data;
+    //   } catch (err) {
+    //     // Re-throw with better context if it's not already our error
+    //     if (err.message && !err.message.includes("HTTP") && !err.message.includes("Authentication")) {
+    //       throw new Error(`Network error: ${err.message}`);
+    //     }
+    //     throw err;
+    //   }
+    // }
 
-async function loadPlaylistsFromServer(force) {
-  const cf = $("#cfg");
-  const serverUrl = cf.serverUrl.value?.trim();
-  const userId = cf.userId.value?.trim();
-  const accessToken = cf.accessToken.value?.trim();
+    $("#helper").addEventListener("submit", async e => {
+      e.preventDefault();
+      const f = new FormData(e.target),
+        urlRaw = f.get("url"),
+        user = f.get("user"),
+        pass = f.get("pass");
+      const btn = $("#helperBtn");
+      btn.disabled = true; btn.textContent = "Fetching…";
 
-  if (!serverUrl || !userId || !accessToken) {
-    existingStatus.textContent = "Please enter Server URL, User ID & Token above first";
-    existingStatus.style.color = "#f59e0b";
-    return;
-  }
+      // Validate and normalize URL
+      if (!urlRaw || !urlRaw.trim()) {
+        alert("Please enter a server URL.");
+        btn.disabled = false; btn.textContent = "Get Access Info";
+        return;
+      }
 
-  // Avoid re-fetching if already loaded unless forced
-  if (!force && movieSelect.options.length > 1) {
-    return;
-  }
+      const url = urlRaw.trim().replace(/\/+$/, "");
+      if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        alert("URL must start with http:// or https://");
+        btn.disabled = false; btn.textContent = "Get Access Info";
+        return;
+      }
 
-  existingStatus.textContent = "Loading playlists from server...";
-  existingStatus.style.color = "var(--text-dim)";
-  refreshPlaylistsBtn.disabled = true;
+      // Basic URL format validation
+      try {
+        new URL(url);
+      } catch {
+        alert("Please enter a valid URL (e.g., https://example.com:8096)");
+        btn.disabled = false; btn.textContent = "Get Access Info";
+        return;
+      }
 
-  try {
-    const res = await fetch("/api/get-emby-playlists", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ serverUrl, userId, accessToken })
+      // Always use Emby (Jellyfin support commented out for future)
+      const serverType = "emby";
+
+      try {
+        // JELLYFIN: Always use Emby authentication - Jellyfin support commented out
+        // const data = serverType === "jellyfin" 
+        //   ? await authenticateJellyfin(url, user, pass)
+        //   : await authenticateEmby(url, user, pass);
+        const data = await authenticateEmby(url, user, pass);
+
+        $("#uid").textContent = data?.User?.Id || "";
+        $("#tok").textContent = data?.AccessToken || "";
+        $("#helperOut").style.display = "block";
+
+        /* autofill config form */
+        const cf = $("#cfg");
+        // Sync server type to Step 2
+        syncServerType(serverType);
+        // Autofill form fields
+        cf.serverUrl.value ||= url;
+        cf.userId.value ||= data?.User?.Id || "";
+        cf.accessToken.value ||= data?.AccessToken || "";
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        btn.disabled = false; btn.textContent = "Get Access Info";
+      }
     });
 
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.err || `HTTP ${res.status}`);
+    /*── Playlist UI Handlers ──*/
+    const syncPlaylistCb = $("#syncPlaylist");
+    const playlistCard = $("#playlistCard");
+    const modeSeparate = $("#modeSeparate");
+    const modeExisting = $("#modeExisting");
+    const separatePanel = $("#separatePlaylistPanel");
+    const existingPanel = $("#existingPlaylistPanel");
+    const refreshPlaylistsBtn = $("#refreshPlaylistsBtn");
+    const existingStatus = $("#existingPlaylistStatus");
+    const movieSelect = $("#moviePlaylistId");
+    const seriesSelect = $("#seriesPlaylistId");
+
+    function updatePlaylistPanels() {
+      if (syncPlaylistCb.checked) {
+        playlistCard.style.display = "block";
+        if (modeExisting.checked) {
+          separatePanel.style.display = "none";
+          existingPanel.style.display = "flex";
+        } else {
+          separatePanel.style.display = "flex";
+          existingPanel.style.display = "none";
+        }
+      } else {
+        playlistCard.style.display = "none";
+      }
     }
 
-    const playlists = data.playlists || [];
-    const prevMovie = movieSelect.value;
-    const prevSeries = seriesSelect.value;
+    syncPlaylistCb.addEventListener("change", updatePlaylistPanels);
+    modeSeparate.addEventListener("change", updatePlaylistPanels);
+    modeExisting.addEventListener("change", () => {
+      updatePlaylistPanels();
+      loadPlaylistsFromServer();
+    });
+    refreshPlaylistsBtn.addEventListener("click", () => loadPlaylistsFromServer(true));
 
-    movieSelect.innerHTML = '<option value="">-- None (Do not sync movies) --</option>';
-    seriesSelect.innerHTML = '<option value="">-- None (Do not sync TV shows) --</option>';
+    async function loadPlaylistsFromServer(force) {
+      const cf = $("#cfg");
+      const serverUrl = cf.serverUrl.value?.trim();
+      const userId = cf.userId.value?.trim();
+      const accessToken = cf.accessToken.value?.trim();
 
-    if (playlists.length === 0) {
-      existingStatus.textContent = "No existing playlists found on server";
-    } else {
-      existingStatus.textContent = `Found ${playlists.length} playlist(s) on server`;
-      playlists.forEach(p => {
-        const optM = document.createElement("option");
-        optM.value = p.id;
-        optM.textContent = p.name;
-        if (p.id === prevMovie) optM.selected = true;
-        movieSelect.appendChild(optM);
+      if (!serverUrl || !userId || !accessToken) {
+        existingStatus.textContent = "Please enter Server URL, User ID & Token above first";
+        existingStatus.style.color = "#f59e0b";
+        return;
+      }
 
-        const optS = document.createElement("option");
-        optS.value = p.id;
-        optS.textContent = p.name;
-        if (p.id === prevSeries) optS.selected = true;
-        seriesSelect.appendChild(optS);
-      });
+      // Avoid re-fetching if already loaded unless forced
+      if (!force && movieSelect.options.length > 1) {
+        return;
+      }
+
+      existingStatus.textContent = "Loading playlists from server...";
+      existingStatus.style.color = "var(--text-dim)";
+      refreshPlaylistsBtn.disabled = true;
+
+      try {
+        const res = await fetch("/api/get-emby-playlists", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ serverUrl, userId, accessToken })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.err || `HTTP ${res.status}`);
+        }
+
+        const playlists = data.playlists || [];
+        const prevMovie = movieSelect.value;
+        const prevSeries = seriesSelect.value;
+
+        movieSelect.innerHTML = '<option value="">-- None (Do not sync movies) --</option>';
+        seriesSelect.innerHTML = '<option value="">-- None (Do not sync TV shows) --</option>';
+
+        if (playlists.length === 0) {
+          existingStatus.textContent = "No existing playlists found on server";
+        } else {
+          existingStatus.textContent = `Found ${playlists.length} playlist(s) on server`;
+          playlists.forEach(p => {
+            const optM = document.createElement("option");
+            optM.value = p.id;
+            optM.textContent = p.name;
+            if (p.id === prevMovie) optM.selected = true;
+            movieSelect.appendChild(optM);
+
+            const optS = document.createElement("option");
+            optS.value = p.id;
+            optS.textContent = p.name;
+            if (p.id === prevSeries) optS.selected = true;
+            seriesSelect.appendChild(optS);
+          });
+        }
+      } catch (err) {
+        existingStatus.textContent = err.message;
+        existingStatus.style.color = "#ef4444";
+      } finally {
+        refreshPlaylistsBtn.disabled = false;
+      }
     }
-  } catch (err) {
-    existingStatus.textContent = err.message;
-    existingStatus.style.color = "#ef4444";
-  } finally {
-    refreshPlaylistsBtn.disabled = false;
-  }
-}
 
-/*── 3 · Config ──*/
-$("#cfg").addEventListener("submit",e=>{
-  e.preventDefault();
-  const formData = new FormData(e.target);
-  const cfg = {};
-  
-  // Always default to Emby (Jellyfin support commented out for future)
-  // JELLYFIN: Server type selection logic commented out
-  // const selectedServerTypeEl = $("#selectedServerType");
-  // const serverTypeFromSelection = selectedServerTypeEl ? selectedServerTypeEl.value : null;
-  const serverTypeFromForm = formData.get("serverType");
-  cfg.serverType = serverTypeFromForm || "emby";
-  
-  // JELLYFIN: Validation commented out - always use Emby
-  // Validate server type is either 'emby' or 'jellyfin'
-  // if (cfg.serverType !== "emby" && cfg.serverType !== "jellyfin") {
-  //   cfg.serverType = "emby"; // Default to emby if invalid
-  // }
-  cfg.serverType = "emby"; // Always use Emby
-  
-  // Required fields
-  const serverUrlRaw = formData.get("serverUrl");
-  cfg.serverUrl = serverUrlRaw ? serverUrlRaw.trim().replace(/\/+$/, "") : "";
-  cfg.userId = formData.get("userId");
-  cfg.accessToken = formData.get("accessToken");
-  
-  // Validate required fields
-  if (!cfg.serverUrl || !cfg.userId || !cfg.accessToken) {
-    alert("Please fill in all required fields (Server URL, User ID, and Access Token).");
-    return;
-  }
-  
-  // Validate URL format (HTTPS not required in Step 3)
-  try {
-    new URL(cfg.serverUrl);
-  } catch {
-    alert("Please enter a valid URL (e.g., https://example.com:8096 or http://localhost:8096)");
-    return;
-  }
-  
-  // New optional fields
-  // showServerName: convert checkbox to boolean (checked = true, unchecked = false)
-  // FormData.get() returns the value for checked boxes, or null for unchecked
-  const showServerNameValue = formData.get("showServerName");
-  cfg.showServerName = showServerNameValue !== null && showServerNameValue !== undefined;
-  
-  // streamName: use provided value or leave empty for auto-detection based on server type
-  const streamName = formData.get("streamName");
-  if (streamName && streamName.trim()) {
-    cfg.streamName = streamName.trim();
-  }
-  
-  // hideStreamTypes: collect all checked values into an array
-  const hideStreamTypes = formData.getAll("hideStreamTypes");
-  if (hideStreamTypes.length > 0) {
-    cfg.hideStreamTypes = hideStreamTypes;
-  }
-  
-  // includeSubtitles: only set when user opts out (unchecked). Omit when checked for backward compatibility (default = include).
-  if (formData.get("includeSubtitles") === null || formData.get("includeSubtitles") === undefined) {
-    cfg.includeSubtitles = false;
-  }
+    /*── 3 · Config ──*/
+    $("#cfg").addEventListener("submit", e => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const cfg = {};
 
-  // Playback & library activity sync preferences
-  if (formData.get("syncPlayback") === null) {
-    cfg.syncPlayback = false;
-  }
-  if (formData.get("syncWatched") === null) {
-    cfg.syncWatched = false;
-  }
-  if (formData.get("syncFavorites") !== null) {
-    cfg.syncFavorites = true;
-  }
-  if (formData.get("syncPlaylist") !== null) {
-    cfg.syncPlaylist = true;
-    const mode = formData.get("playlistMode") || "separate";
-    cfg.playlistMode = mode;
-    if (mode === "separate") {
-      cfg.moviePlaylistName = (formData.get("moviePlaylistName") || "").trim() || "Stremio Movies";
-      cfg.seriesPlaylistName = (formData.get("seriesPlaylistName") || "").trim() || "Stremio Shows";
-    } else if (mode === "existing") {
-      cfg.moviePlaylistId = formData.get("moviePlaylistId") || "";
-      cfg.seriesPlaylistId = formData.get("seriesPlaylistId") || "";
-    }
-  } else {
-    cfg.syncPlaylist = false;
-  }
+      // Always default to Emby (Jellyfin support commented out for future)
+      // JELLYFIN: Server type selection logic commented out
+      // const selectedServerTypeEl = $("#selectedServerType");
+      // const serverTypeFromSelection = selectedServerTypeEl ? selectedServerTypeEl.value : null;
+      const serverTypeFromForm = formData.get("serverType");
+      cfg.serverType = serverTypeFromForm || "emby";
 
-  const cfg64=btoa(unescape(encodeURIComponent(JSON.stringify(cfg))))
-                .replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+      // JELLYFIN: Validation commented out - always use Emby
+      // Validate server type is either 'emby' or 'jellyfin'
+      // if (cfg.serverType !== "emby" && cfg.serverType !== "jellyfin") {
+      //   cfg.serverType = "emby"; // Default to emby if invalid
+      // }
+      cfg.serverType = "emby"; // Always use Emby
 
-  const httpURL    = `${location.origin}/${cfg64}/manifest.json`;
-  const stremioURL = `stremio://${location.host}/${cfg64}/manifest.json`;
+      // Required fields
+      const serverUrlRaw = formData.get("serverUrl");
+      cfg.serverUrl = serverUrlRaw ? serverUrlRaw.trim().replace(/\/+$/, "") : "";
+      cfg.userId = formData.get("userId");
+      cfg.accessToken = formData.get("accessToken");
 
-  // Create output HTML (URLs are safe - base64 encoded, no XSS risk)
-  const urlDisplay = document.createElement('pre');
-  urlDisplay.textContent = httpURL;
-  
-  const copyBtn = document.createElement('button');
-  copyBtn.className = 'copy-btn';
-  copyBtn.textContent = 'Copy URL';
-  copyBtn.onclick = () => {
-    navigator.clipboard.writeText(httpURL).then(() => toast('Copied URL'));
-  };
+      // Validate required fields
+      if (!cfg.serverUrl || !cfg.userId || !cfg.accessToken) {
+        alert("Please fill in all required fields (Server URL, User ID, and Access Token).");
+        return;
+      }
 
-  $("#cfgOut").innerHTML = `
+      // Validate URL format (HTTPS not required in Step 3)
+      try {
+        new URL(cfg.serverUrl);
+      } catch {
+        alert("Please enter a valid URL (e.g., https://example.com:8096 or http://localhost:8096)");
+        return;
+      }
+
+      // New optional fields
+      // showServerName: convert checkbox to boolean (checked = true, unchecked = false)
+      // FormData.get() returns the value for checked boxes, or null for unchecked
+      const showServerNameValue = formData.get("showServerName");
+      cfg.showServerName = showServerNameValue !== null && showServerNameValue !== undefined;
+
+      // streamName: use provided value or leave empty for auto-detection based on server type
+      const streamName = formData.get("streamName");
+      if (streamName && streamName.trim()) {
+        cfg.streamName = streamName.trim();
+      }
+
+      // hideStreamTypes: collect all checked values into an array
+      const hideStreamTypes = formData.getAll("hideStreamTypes");
+      if (hideStreamTypes.length > 0) {
+        cfg.hideStreamTypes = hideStreamTypes;
+      }
+
+      // includeSubtitles: only set when user opts out (unchecked). Omit when checked for backward compatibility (default = include).
+      if (formData.get("includeSubtitles") === null || formData.get("includeSubtitles") === undefined) {
+        cfg.includeSubtitles = false;
+      }
+
+      // Playback & library activity sync preferences
+      if (formData.get("syncPlayback") === null) {
+        cfg.syncPlayback = false;
+      }
+      if (formData.get("syncWatched") === null) {
+        cfg.syncWatched = false;
+      }
+      if (formData.get("syncFavorites") !== null) {
+        cfg.syncFavorites = true;
+      }
+      if (formData.get("syncPlaylist") !== null) {
+        cfg.syncPlaylist = true;
+        const mode = formData.get("playlistMode") || "separate";
+        cfg.playlistMode = mode;
+        if (mode === "separate") {
+          cfg.moviePlaylistName = (formData.get("moviePlaylistName") || "").trim() || "Stremio Movies";
+          cfg.seriesPlaylistName = (formData.get("seriesPlaylistName") || "").trim() || "Stremio Shows";
+        } else if (mode === "existing") {
+          cfg.moviePlaylistId = formData.get("moviePlaylistId") || "";
+          cfg.seriesPlaylistId = formData.get("seriesPlaylistId") || "";
+        }
+      } else {
+        cfg.syncPlaylist = false;
+      }
+
+      const cfg64 = btoa(unescape(encodeURIComponent(JSON.stringify(cfg))))
+        .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+      const httpURL = `${location.origin}/${cfg64}/manifest.json`;
+      const stremioURL = `stremio://${location.host}/${cfg64}/manifest.json`;
+
+      // Create output HTML (URLs are safe - base64 encoded, no XSS risk)
+      const urlDisplay = document.createElement('pre');
+      urlDisplay.textContent = httpURL;
+
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'copy-btn';
+      copyBtn.textContent = 'Copy URL';
+      copyBtn.onclick = () => {
+        navigator.clipboard.writeText(httpURL).then(() => toast('Copied URL'));
+      };
+
+      $("#cfgOut").innerHTML = `
     <p><a href="${stremioURL}" style="display:inline-flex;align-items:center;gap:0.4rem;font-weight:600;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg><span>Install directly in Stremio</span></a></p>
     <small>Or copy this URL and add it via <em>Add-ons → Install via URL</em>:</small>
   `;
-  $("#cfgOut").appendChild(urlDisplay);
-  $("#cfgOut").appendChild(copyBtn);
-});
+      $("#cfgOut").appendChild(urlDisplay);
+      $("#cfgOut").appendChild(copyBtn);
+    });
 
-// Auto pre-fill if loaded from /:cfg/configure
-try {
-  const parts = window.location.pathname.split("/").filter(Boolean);
-  if (parts.length >= 2 && parts[parts.length - 1] === "configure") {
-    const cfgStr = parts[parts.length - 2];
-    const decoded = JSON.parse(decodeURIComponent(escape(atob(cfgStr.replace(/-/g, "+").replace(/_/g, "/")))));
-    if (decoded) {
-      const cf = $("#cfg");
-      if (decoded.serverUrl) cf.serverUrl.value = decoded.serverUrl;
-      if (decoded.userId) cf.userId.value = decoded.userId;
-      if (decoded.accessToken) cf.accessToken.value = decoded.accessToken;
-      if (decoded.streamName) cf.streamName.value = decoded.streamName;
-      if (decoded.showServerName !== undefined) cf.showServerName.checked = !!decoded.showServerName;
-      if (decoded.includeSubtitles !== undefined) cf.includeSubtitles.checked = !!decoded.includeSubtitles;
-      if (decoded.syncPlayback !== undefined) cf.syncPlayback.checked = !!decoded.syncPlayback;
-      if (decoded.syncWatched !== undefined) cf.syncWatched.checked = !!decoded.syncWatched;
-      if (decoded.syncFavorites !== undefined) cf.syncFavorites.checked = !!decoded.syncFavorites;
-      if (decoded.syncPlaylist !== undefined) cf.syncPlaylist.checked = !!decoded.syncPlaylist;
-      if (decoded.playlistMode === "existing") {
-        $("#modeExisting").checked = true;
-      } else {
-        $("#modeSeparate").checked = true;
+    // Auto pre-fill if loaded from /:cfg/configure
+    try {
+      const parts = window.location.pathname.split("/").filter(Boolean);
+      if (parts.length >= 2 && parts[parts.length - 1] === "configure") {
+        const cfgStr = parts[parts.length - 2];
+        const decoded = JSON.parse(decodeURIComponent(escape(atob(cfgStr.replace(/-/g, "+").replace(/_/g, "/")))));
+        if (decoded) {
+          const cf = $("#cfg");
+          if (decoded.serverUrl) cf.serverUrl.value = decoded.serverUrl;
+          if (decoded.userId) cf.userId.value = decoded.userId;
+          if (decoded.accessToken) cf.accessToken.value = decoded.accessToken;
+          if (decoded.streamName) cf.streamName.value = decoded.streamName;
+          if (decoded.showServerName !== undefined) cf.showServerName.checked = !!decoded.showServerName;
+          if (decoded.includeSubtitles !== undefined) cf.includeSubtitles.checked = !!decoded.includeSubtitles;
+          if (decoded.syncPlayback !== undefined) cf.syncPlayback.checked = !!decoded.syncPlayback;
+          if (decoded.syncWatched !== undefined) cf.syncWatched.checked = !!decoded.syncWatched;
+          if (decoded.syncFavorites !== undefined) cf.syncFavorites.checked = !!decoded.syncFavorites;
+          if (decoded.syncPlaylist !== undefined) cf.syncPlaylist.checked = !!decoded.syncPlaylist;
+          if (decoded.playlistMode === "existing") {
+            $("#modeExisting").checked = true;
+          } else {
+            $("#modeSeparate").checked = true;
+          }
+          if (decoded.moviePlaylistName) $("#moviePlaylistName").value = decoded.moviePlaylistName;
+          if (decoded.seriesPlaylistName) $("#seriesPlaylistName").value = decoded.seriesPlaylistName;
+          updatePlaylistPanels();
+          if (decoded.syncPlaylist && decoded.playlistMode === "existing") {
+            loadPlaylistsFromServer().then(() => {
+              if (decoded.moviePlaylistId) $("#moviePlaylistId").value = decoded.moviePlaylistId;
+              if (decoded.seriesPlaylistId) $("#seriesPlaylistId").value = decoded.seriesPlaylistId;
+            });
+          }
+          if (Array.isArray(decoded.hideStreamTypes)) {
+            cf.querySelectorAll("input[name='hideStreamTypes']").forEach(cb => {
+              cb.checked = decoded.hideStreamTypes.includes(cb.value);
+            });
+          }
+        }
       }
-      if (decoded.moviePlaylistName) $("#moviePlaylistName").value = decoded.moviePlaylistName;
-      if (decoded.seriesPlaylistName) $("#seriesPlaylistName").value = decoded.seriesPlaylistName;
-      updatePlaylistPanels();
-      if (decoded.syncPlaylist && decoded.playlistMode === "existing") {
-        loadPlaylistsFromServer().then(() => {
-          if (decoded.moviePlaylistId) $("#moviePlaylistId").value = decoded.moviePlaylistId;
-          if (decoded.seriesPlaylistId) $("#seriesPlaylistId").value = decoded.seriesPlaylistId;
-        });
-      }
-      if (Array.isArray(decoded.hideStreamTypes)) {
-        cf.querySelectorAll("input[name='hideStreamTypes']").forEach(cb => {
-          cb.checked = decoded.hideStreamTypes.includes(cb.value);
-        });
-      }
+    } catch (e) {
+      // Ignore malformed cfg in URL path
     }
-  }
-} catch (e) {
-  // Ignore malformed cfg in URL path
-}
-</script>
-<script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>
-<script>
-  kofiWidgetOverlay.draw('harsimranjeetsingh4', {
-    'type': 'floating-chat',
-    'floating-chat.donateButton.text': 'Support me',
-    'floating-chat.donateButton.background-color': '#22c55e',
-    'floating-chat.donateButton.text-color': '#fff'
-  });
-</script>
+  </script>
+  <script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>
+  <script>
+    kofiWidgetOverlay.draw('harsimranjeetsingh4', {
+      'type': 'floating-chat',
+      'floating-chat.donateButton.text': 'Support me',
+      'floating-chat.donateButton.background-color': '#22c55e',
+      'floating-chat.donateButton.text-color': '#fff'
+    });
+  </script>
 </body>
+
 </html>

@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🎬 StreamBridge
+<img src="public/logo.svg" width="96" height="96" alt="StreamBridge Logo" style="border-radius:18px;" />
+
+# StreamBridge
 
 ### Bridge Your Emby Server to Stremio
 

@@ -142,6 +142,8 @@ function baseManifest () {
     name    : "StreamBridge: Emby to Stremio",
     description:
       "Stream media from your Emby server using IMDb/TMDB/Tvdb/Anidb IDs.",
+    logo    : "/logo.svg",
+    icon    : "/logo.svg",
     catalogs : [],
     resources: [
       { name: "stream",
