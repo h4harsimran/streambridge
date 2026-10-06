@@ -6,7 +6,7 @@
 
 ### Bridge Your Emby Server to Stremio
 
-![Version](https://img.shields.io/badge/version-1.2.3-blue.svg)
+![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Node.js](https://img.shields.io/badge/node-%3E%3D14.0.0-brightgreen.svg)
 ![Status](https://img.shields.io/badge/status-active-success.svg)
@@ -60,7 +60,7 @@
 | **📝 Subtitle Support** | Automatic subtitle loading from your server library |
 | **⏱️ Playback Scrobbling** | Real-time playback sync (Now Playing dashboard, pause states, and resume positions) |
 | **✅ Watched State Sync** | Automatic watch completion sync, plus manual watched/unwatched and season batch sync |
-| **⭐ Library Sync** | Optional synchronization between your Stremio Library and Emby Favorites |
+| **⭐ Library & Playlist Sync** | Optional synchronization when adding titles in Stremio: sync to Emby Favorites or dedicated Playlists (with separate playlists for Movies and Shows) |
 | **🔄 Emby Support** | Works with Emby servers |
 | **⚙️ Configurable** | Customizable stream names, quality filtering, and sync preferences |
 

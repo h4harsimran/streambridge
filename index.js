@@ -10,7 +10,7 @@ const cors         = require("cors");
 const rateLimit    = require("express-rate-limit");
 const axios        = require("axios");
 const embyClient   = require("./lib/embyClient");
-const { redactServerUrl } = require("./lib/redact");
+// const { redactServerUrl } = require("./lib/redact");
 const { version } = require("./package.json");
 // JELLYFIN: Jellyfin client import commented out for future Jellyfin support
 // const jellyfinClient = require("./lib/jellyfinClient");
@@ -38,13 +38,11 @@ app.post("/api/get-emby-tokens", embyAuthLimiter, async (req, res) => {
   const password  = typeof req.body?.password === "string" ? req.body.password : "";
 
   if (!serverUrl || !username) {
-    console.warn("Auth: missing serverUrl or username");
     return res.status(400).json({ err: "serverUrl and username are required" });
   }
 
   const normalizedUrl = serverUrl.replace(/\/+$/, "");
   if (!normalizedUrl.startsWith("http://") && !normalizedUrl.startsWith("https://")) {
-    console.warn("Auth: invalid URL scheme (must be http:// or https://)");
     return res.status(400).json({ err: "URL must start with http:// or https://" });
   }
 
@@ -64,7 +62,6 @@ app.post("/api/get-emby-tokens", embyAuthLimiter, async (req, res) => {
 
     if (ax.status !== 200) {
       const msg = ax.data?.Message || ax.data?.message || `HTTP ${ax.status}`;
-      console.warn("Auth failed:", redactServerUrl(normalizedUrl), "→", ax.status, msg);
       return res.status(400).json({ err: msg });
     }
 
@@ -74,7 +71,6 @@ app.post("/api/get-emby-tokens", embyAuthLimiter, async (req, res) => {
     const serverId = data?.ServerId;
 
     if (!userId || !accessToken) {
-      console.warn("Auth failed:", redactServerUrl(normalizedUrl), "→ invalid response (missing User.Id or AccessToken)");
       return res.status(502).json({ err: "Invalid response from server" });
     }
 
@@ -85,8 +81,6 @@ app.post("/api/get-emby-tokens", embyAuthLimiter, async (req, res) => {
     });
   } catch (e) {
     const msg = e?.response?.data?.Message || e?.response?.data?.message || e?.code || e?.message || "Request failed";
-    const code = e?.code || (e?.response?.status ? `HTTP ${e.response.status}` : "");
-    console.warn("Auth failed:", redactServerUrl(normalizedUrl), code ? "→" : "", code || "", msg);
     return res.status(502).json({ err: String(msg) });
   }
 });
@@ -251,16 +245,12 @@ app.get("/:cfg/manifest.json", (req, res) => {
   try {
     cfg = decodeCfg(cfgString);    
   } catch (err) {
-    console.error("[ERROR] Error decoding cfg in manifest route:", err.message);
-    // SECURITY: Do not log cfgString as it contains sensitive user credentials (accessToken, userId, serverUrl)
-    console.error("[ERROR] Failed to decode config (cfgString length:", cfgString?.length || 0, ")");
     return res.status(400).json({ err: "Bad config in URL", details: err.message });
   }
 
   const mf = baseManifest();
 
   if (!mf) {
-    console.error("[FATAL] baseManifest() returned undefined. This is the cause of the error.");
     return res.status(500).json({ err: "Server error: Failed to generate base manifest object." });
   }
 
@@ -332,12 +322,7 @@ app.get("/:cfg/stream/:type/:id.json", async (req, res) => {
     }
 
     res.json({ streams });
-  } catch (e) {
-    // SECURITY: Only log error message and stack, not the full error object which might contain config
-    console.error("Stream handler error:", e?.message || String(e));
-    if (e?.stack && process.env.NODE_ENV === 'development') {
-      console.error("Stack trace:", e.stack);
-    }
+  } catch {
     res.json({ streams: [] });
   }
 });
@@ -363,8 +348,7 @@ app.get(["/:cfg/player/:type/:videoID/:extraArgs.json", "/:cfg/player/:type/:vid
   try {
     const result = await embyClient.handlePlayerEvent(videoID, extraArgs || "", cfg, type);
     res.json(result || { success: true });
-  } catch (err) {
-    console.error("Player event error:", err?.message || String(err));
+  } catch {
     res.json({ success: false });
   }
 });
@@ -390,8 +374,7 @@ app.get(["/:cfg/library/:type/:id/:extraArgs.json", "/:cfg/library/:type/:id.jso
   try {
     const result = await embyClient.handleLibraryEvent(id, extraArgs || "", cfg, type);
     res.json(result || { success: true });
-  } catch (err) {
-    console.error("Library event error:", err?.message || String(err));
+  } catch {
     res.json({ success: false });
   }
 });
@@ -403,7 +386,6 @@ app.get(["/:cfg/library/:type/:id/:extraArgs.json", "/:cfg/library/:type/:id.jso
 app.get("/manifest.json", (_req, res) => {
   const mf = baseManifest();
   if (!mf) {
-    console.error("[FATAL] baseManifest() returned undefined for fallback route.");
     return res.status(500).json({ err: "Server error: Failed to generate base manifest object." });
   }
   res.json(mf);
