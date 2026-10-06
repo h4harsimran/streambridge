@@ -4,7 +4,6 @@
  * User data is embedded in the URL path as a base64-url string.
  */
 
-const crypto       = require("crypto");
 const express      = require("express");
 const path         = require("path");
 const cors         = require("cors");
@@ -256,8 +255,7 @@ app.get("/:cfg/manifest.json", (req, res) => {
     return res.status(500).json({ err: "Server error: Failed to generate base manifest object." });
   }
 
-  const cfgHash = crypto.createHash("md5").update(cfgString).digest("hex").slice(0, 8);
-  mf.id += "." + cfgHash; 
+  mf.id += "." + cfgString.slice(0, 8); 
 
   // Conditionally show server name based on config (defaults to false - server name hidden by default)
   if (cfg.showServerName === true) {
