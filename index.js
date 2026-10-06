@@ -355,13 +355,13 @@ app.get(["/:cfg/player/:type/:videoID/:extraArgs.json", "/:cfg/player/:type/:vid
     return res.json({ success: false });
   }
 
-  const { videoID, extraArgs } = req.params;
+  const { videoID, extraArgs, type } = req.params;
   if (!cfg.serverUrl || !cfg.userId || !cfg.accessToken || !videoID) {
     return res.json({ success: false });
   }
 
   try {
-    const result = await embyClient.handlePlayerEvent(videoID, extraArgs || "", cfg);
+    const result = await embyClient.handlePlayerEvent(videoID, extraArgs || "", cfg, type);
     res.json(result || { success: true });
   } catch (err) {
     console.error("Player event error:", err?.message || String(err));
@@ -382,13 +382,13 @@ app.get(["/:cfg/library/:type/:id/:extraArgs.json", "/:cfg/library/:type/:id.jso
     return res.json({ success: false });
   }
 
-  const { id, extraArgs } = req.params;
+  const { id, extraArgs, type } = req.params;
   if (!cfg.serverUrl || !cfg.userId || !cfg.accessToken || !id) {
     return res.json({ success: false });
   }
 
   try {
-    const result = await embyClient.handleLibraryEvent(id, extraArgs || "", cfg);
+    const result = await embyClient.handleLibraryEvent(id, extraArgs || "", cfg, type);
     res.json(result || { success: true });
   } catch (err) {
     console.error("Library event error:", err?.message || String(err));
