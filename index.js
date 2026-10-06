@@ -91,6 +91,47 @@ app.post("/api/get-emby-tokens", embyAuthLimiter, async (req, res) => {
   }
 });
 
+app.post("/api/get-emby-playlists", embyAuthLimiter, async (req, res) => {
+  const serverUrl   = typeof req.body?.serverUrl === "string" ? req.body.serverUrl.trim() : "";
+  const userId      = typeof req.body?.userId === "string" ? req.body.userId.trim() : "";
+  const accessToken = typeof req.body?.accessToken === "string" ? req.body.accessToken.trim() : "";
+
+  if (!serverUrl || !userId || !accessToken) {
+    return res.status(400).json({ err: "serverUrl, userId, and accessToken are required" });
+  }
+
+  const normalizedUrl = serverUrl.replace(/\/+$/, "");
+  if (!normalizedUrl.startsWith("http://") && !normalizedUrl.startsWith("https://")) {
+    return res.status(400).json({ err: "URL must start with http:// or https://" });
+  }
+
+  try {
+    const ax = await axios({
+      method: "GET",
+      url: `${normalizedUrl}/Users/${encodeURIComponent(userId)}/Items`,
+      params: {
+        IncludeItemTypes: "Playlist",
+        Recursive: true
+      },
+      headers: {
+        "X-Emby-Token": accessToken
+      },
+      timeout: 8000
+    });
+
+    const items = ax.data?.Items || [];
+    const playlists = items.map(p => ({
+      id: String(p.Id),
+      name: p.Name
+    }));
+
+    return res.json({ playlists });
+  } catch (e) {
+    const msg = e?.response?.data?.Message || e?.response?.data?.message || e?.message || "Failed to fetch playlists";
+    return res.status(e?.response?.status || 502).json({ err: String(msg) });
+  }
+});
+
 // ──────────────────────────────────────────────────────────────────────────
 // Helper: build a naked manifest (no user-specific data yet)
 // ──────────────────────────────────────────────────────────────────────────
@@ -146,6 +187,12 @@ function decodeCfg(str) {
   if (cfg.syncPlayback === undefined) cfg.syncPlayback = true; // Default: scrobble playback to Emby
   if (cfg.syncWatched === undefined) cfg.syncWatched = true;   // Default: sync watched/unwatched
   if (cfg.syncFavorites === undefined) cfg.syncFavorites = false; // Default: do not alter favorites unless opted in
+  if (cfg.syncPlaylist === undefined) cfg.syncPlaylist = false;   // Default: do not alter playlists unless opted in
+  if (!cfg.playlistMode) cfg.playlistMode = 'separate';
+  if (!cfg.moviePlaylistName) cfg.moviePlaylistName = 'Stremio Movies';
+  if (!cfg.seriesPlaylistName) cfg.seriesPlaylistName = 'Stremio Shows';
+  if (!cfg.moviePlaylistId) cfg.moviePlaylistId = '';
+  if (!cfg.seriesPlaylistId) cfg.seriesPlaylistId = '';
   
   return cfg;
 }

@@ -76,12 +76,12 @@ a:hover{text-decoration:underline}
 form{display:flex;flex-direction:column;gap:0}
 label{font-size:.9rem;display:block;font-weight:500;color:var(--text)}
 small{font-size:.8rem;color:var(--text-dim);line-height:1.4;display:block}
-input{
+input, select{
   width:100%;padding:.65rem .8rem;border-radius:8px;border:1px solid #334155;
   background:#0f1722;color:var(--text);font-size:.95rem;
 }
-input:focus{outline:2px solid var(--accent);outline-offset:0}
-input[type="checkbox"]{width:auto;margin:0 .5rem 0 0;cursor:pointer}
+input:focus, select:focus{outline:2px solid var(--accent);outline-offset:0}
+input[type="checkbox"], input[type="radio"]{width:auto;margin:0 .5rem 0 0;cursor:pointer}
 form#cfg{display:flex;flex-direction:column;gap:0}
 form#cfg > *{width:100%}
 button{
@@ -308,7 +308,64 @@ iframe[id*="kofi-wo-container"] {
           <input type="checkbox" name="syncFavorites" id="syncFavorites">
           <span>Sync Stremio library with Emby favorites</span>
         </label>
-        <small>Adding or removing items in your Stremio Library will update your Favorites in Emby.</small>
+        <small>Adding or removing items in your Stremio Library will update your Favorites (Heart) in Emby.</small>
+      </div>
+
+      <div class="field-group">
+        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;margin:0;">
+          <input type="checkbox" name="syncPlaylist" id="syncPlaylist">
+          <span>Add to Emby Playlist(s)</span>
+        </label>
+        <small>Organize saved media into playlists on your Emby server when added to Stremio library.</small>
+      </div>
+
+      <!-- Playlist Configuration Card -->
+      <div id="playlistCard" style="display:none;background:#131c26;border:1px solid #233142;border-radius:10px;padding:1.15rem;margin-top:-0.5rem;margin-bottom:1.25rem;">
+        <div style="font-size:0.88rem;font-weight:600;color:var(--text);margin-bottom:0.75rem;">Playlist Mode</div>
+        
+        <div style="display:flex;flex-direction:column;gap:0.6rem;margin-bottom:1rem;">
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;margin:0;">
+            <input type="radio" name="playlistMode" value="separate" checked id="modeSeparate">
+            <span>Separate Playlists (Auto-Create)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;margin:0;">
+            <input type="radio" name="playlistMode" value="existing" id="modeExisting">
+            <span>Use Existing Playlists</span>
+          </label>
+        </div>
+
+        <!-- Separate Playlists Inputs -->
+        <div id="separatePlaylistPanel" style="display:flex;flex-direction:column;gap:0.85rem;">
+          <div>
+            <label style="font-size:0.82rem;color:var(--text-dim);margin-bottom:0.3rem;">Movies Playlist Name</label>
+            <input name="moviePlaylistName" id="moviePlaylistName" value="Stremio Movies" placeholder="Stremio Movies">
+          </div>
+          <div>
+            <label style="font-size:0.82rem;color:var(--text-dim);margin-bottom:0.3rem;">TV Shows Playlist Name</label>
+            <input name="seriesPlaylistName" id="seriesPlaylistName" value="Stremio Shows" placeholder="Stremio Shows">
+          </div>
+          <small style="color:var(--text-dim);font-size:0.78rem;">Playlists will be created automatically on your Emby server if they don't already exist.</small>
+        </div>
+
+        <!-- Existing Playlists Dropdowns -->
+        <div id="existingPlaylistPanel" style="display:none;flex-direction:column;gap:0.85rem;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
+            <small id="existingPlaylistStatus" style="color:var(--text-dim);font-size:0.8rem;">Select playlists from your server:</small>
+            <button type="button" id="refreshPlaylistsBtn" style="width:auto;padding:0.35rem 0.75rem;font-size:0.8rem;background:#1e293b;">🔄 Refresh</button>
+          </div>
+          <div>
+            <label style="font-size:0.82rem;color:var(--text-dim);margin-bottom:0.3rem;">Movies Playlist</label>
+            <select name="moviePlaylistId" id="moviePlaylistId">
+              <option value="">-- None (Do not sync movies) --</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:0.82rem;color:var(--text-dim);margin-bottom:0.3rem;">TV Shows Playlist</label>
+            <select name="seriesPlaylistId" id="seriesPlaylistId">
+              <option value="">-- None (Do not sync TV shows) --</option>
+            </select>
+          </div>
+        </div>
       </div>
     </div>
     
@@ -517,6 +574,107 @@ $("#helper").addEventListener("submit", async e=>{
   }
 });
 
+/*── Playlist UI Handlers ──*/
+const syncPlaylistCb = $("#syncPlaylist");
+const playlistCard = $("#playlistCard");
+const modeSeparate = $("#modeSeparate");
+const modeExisting = $("#modeExisting");
+const separatePanel = $("#separatePlaylistPanel");
+const existingPanel = $("#existingPlaylistPanel");
+const refreshPlaylistsBtn = $("#refreshPlaylistsBtn");
+const existingStatus = $("#existingPlaylistStatus");
+const movieSelect = $("#moviePlaylistId");
+const seriesSelect = $("#seriesPlaylistId");
+
+function updatePlaylistPanels() {
+  if (syncPlaylistCb.checked) {
+    playlistCard.style.display = "block";
+    if (modeExisting.checked) {
+      separatePanel.style.display = "none";
+      existingPanel.style.display = "flex";
+    } else {
+      separatePanel.style.display = "flex";
+      existingPanel.style.display = "none";
+    }
+  } else {
+    playlistCard.style.display = "none";
+  }
+}
+
+syncPlaylistCb.addEventListener("change", updatePlaylistPanels);
+modeSeparate.addEventListener("change", updatePlaylistPanels);
+modeExisting.addEventListener("change", () => {
+  updatePlaylistPanels();
+  loadPlaylistsFromServer();
+});
+refreshPlaylistsBtn.addEventListener("click", () => loadPlaylistsFromServer(true));
+
+async function loadPlaylistsFromServer(force) {
+  const cf = $("#cfg");
+  const serverUrl = cf.serverUrl.value?.trim();
+  const userId = cf.userId.value?.trim();
+  const accessToken = cf.accessToken.value?.trim();
+
+  if (!serverUrl || !userId || !accessToken) {
+    existingStatus.textContent = "⚠️ Enter Server URL, User ID & Token above first";
+    existingStatus.style.color = "#f59e0b";
+    return;
+  }
+
+  // Avoid re-fetching if already loaded unless forced
+  if (!force && movieSelect.options.length > 1) {
+    return;
+  }
+
+  existingStatus.textContent = "Loading playlists from server...";
+  existingStatus.style.color = "var(--text-dim)";
+  refreshPlaylistsBtn.disabled = true;
+
+  try {
+    const res = await fetch("/api/get-emby-playlists", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ serverUrl, userId, accessToken })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.err || `HTTP ${res.status}`);
+    }
+
+    const playlists = data.playlists || [];
+    const prevMovie = movieSelect.value;
+    const prevSeries = seriesSelect.value;
+
+    movieSelect.innerHTML = '<option value="">-- None (Do not sync movies) --</option>';
+    seriesSelect.innerHTML = '<option value="">-- None (Do not sync TV shows) --</option>';
+
+    if (playlists.length === 0) {
+      existingStatus.textContent = "No existing playlists found on server";
+    } else {
+      existingStatus.textContent = `Found ${playlists.length} playlist(s) on server`;
+      playlists.forEach(p => {
+        const optM = document.createElement("option");
+        optM.value = p.id;
+        optM.textContent = p.name;
+        if (p.id === prevMovie) optM.selected = true;
+        movieSelect.appendChild(optM);
+
+        const optS = document.createElement("option");
+        optS.value = p.id;
+        optS.textContent = p.name;
+        if (p.id === prevSeries) optS.selected = true;
+        seriesSelect.appendChild(optS);
+      });
+    }
+  } catch (err) {
+    existingStatus.textContent = `❌ ${err.message}`;
+    existingStatus.style.color = "#ef4444";
+  } finally {
+    refreshPlaylistsBtn.disabled = false;
+  }
+}
+
 /*── 3 · Config ──*/
 $("#cfg").addEventListener("submit",e=>{
   e.preventDefault();
@@ -590,6 +748,20 @@ $("#cfg").addEventListener("submit",e=>{
   if (formData.get("syncFavorites") !== null) {
     cfg.syncFavorites = true;
   }
+  if (formData.get("syncPlaylist") !== null) {
+    cfg.syncPlaylist = true;
+    const mode = formData.get("playlistMode") || "separate";
+    cfg.playlistMode = mode;
+    if (mode === "separate") {
+      cfg.moviePlaylistName = (formData.get("moviePlaylistName") || "").trim() || "Stremio Movies";
+      cfg.seriesPlaylistName = (formData.get("seriesPlaylistName") || "").trim() || "Stremio Shows";
+    } else if (mode === "existing") {
+      cfg.moviePlaylistId = formData.get("moviePlaylistId") || "";
+      cfg.seriesPlaylistId = formData.get("seriesPlaylistId") || "";
+    }
+  } else {
+    cfg.syncPlaylist = false;
+  }
 
   const cfg64=btoa(unescape(encodeURIComponent(JSON.stringify(cfg))))
                 .replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
@@ -633,6 +805,21 @@ try {
       if (decoded.syncPlayback !== undefined) cf.syncPlayback.checked = !!decoded.syncPlayback;
       if (decoded.syncWatched !== undefined) cf.syncWatched.checked = !!decoded.syncWatched;
       if (decoded.syncFavorites !== undefined) cf.syncFavorites.checked = !!decoded.syncFavorites;
+      if (decoded.syncPlaylist !== undefined) cf.syncPlaylist.checked = !!decoded.syncPlaylist;
+      if (decoded.playlistMode === "existing") {
+        $("#modeExisting").checked = true;
+      } else {
+        $("#modeSeparate").checked = true;
+      }
+      if (decoded.moviePlaylistName) $("#moviePlaylistName").value = decoded.moviePlaylistName;
+      if (decoded.seriesPlaylistName) $("#seriesPlaylistName").value = decoded.seriesPlaylistName;
+      updatePlaylistPanels();
+      if (decoded.syncPlaylist && decoded.playlistMode === "existing") {
+        loadPlaylistsFromServer().then(() => {
+          if (decoded.moviePlaylistId) $("#moviePlaylistId").value = decoded.moviePlaylistId;
+          if (decoded.seriesPlaylistId) $("#seriesPlaylistId").value = decoded.seriesPlaylistId;
+        });
+      }
       if (Array.isArray(decoded.hideStreamTypes)) {
         cf.querySelectorAll("input[name='hideStreamTypes']").forEach(cb => {
           cb.checked = decoded.hideStreamTypes.includes(cb.value);
